@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <title>暗棋 v3.8 + AI</title>
+  <style>
+    body { font-family: sans-serif; background: #eee; text-align: center; }
+    table { border-collapse: collapse; margin: 1em auto; }
+    td {
+      width: 60px; height: 60px;
+      border: 1px solid #333;
+      background: #fff;
+      font-size: 1.2em;
+      cursor: pointer;
+      text-align: center;
+      vertical-align: middle;
+    }
+    .selected { background: #ffc; }
+    .red { color: red; font-weight: bold; }
+    .black { color: black; font-weight: bold; }
+    #controls { margin-top: 1em; }
+  </style>
+</head>
+<body>
+
+<h1>♟️ 暗棋 v3.8 + AI</h1>
+<p id="turnInfo">左方先翻一子</p>
+<div id="controls"><button onclick="undo()">🔁 悔棋</button></div>
+<table id="board"></table>
+
+<script>
+const redPieces = ["帥","仕","仕","相","相","俥","俥","傌","傌","兵","兵","兵","兵","兵","炮","炮"];
+const blackPieces = ["將","士","士","象","象","車","車","馬","馬","卒","卒","卒","卒","卒","包","包"];
+let board = [], selectedIndex = null;
+let leftSide = null, rightSide = null;
+let currentPlayer = "left";
+let history = [];
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+}
+
+function initGame() {
+  const red = redPieces.map(p => ({ piece: p, side: "red", revealed: false }));
+  const black = blackPieces.map(p => ({ piece: p, side: "black", revealed: false }));
+  const all = [...red, ...black];
+  shuffle(all);
+  board = all;
+  selectedIndex = null;
+  leftSide = null;
+  rightSide = null;
+  currentPlayer = "left";
+  history = [];
+  renderBoard();
+}
+
+function renderBoard() {
+  const table = document.getElementById("board");
+  table.innerHTML = "";
+  for (let y = 0; y < 4; y++) {
+    const row = document.createElement("tr");
+    for (let x = 0; x < 8; x++) {
+      const idx = y * 8 + x;
+      const cell = board[idx];
+      const td = document.createElement("td");
+      if (!cell.piece) td.textContent = "";
+      else if (!cell.revealed) td.textContent = "❓";
+      else {
+        td.textContent = cell.piece;
+        td.className = cell.side;
+      }
+      if (idx === selectedIndex) td.classList.add("selected");
+      td.onclick = () => handleClick(idx);
+      row.appendChild(td);
+    }
+    table.appendChild(row);
+  }
+
+  const msg = leftSide && rightSide
+    ? `現在輪到：${currentPlayer === "left" ? "左方" : "右方"}（${currentPlayer === "left" ? leftSide : rightSide}方）`
+    : currentPlayer === "left"
+      ? "左方請翻出第一枚棋子"
+      : "右方請翻出一枚棋子並決定顏色";
+  document.getElementById("turnInfo").textContent = msg;
+
+  // 🔹 AI 控制接入點（條件開關）
+  if (currentPlayer === "right") {
+    setTimeout(handleAIMove, 400);
+  }
+}
+
+function saveHistory() {
+  history.push({
+    board: board.map(c => ({ ...c })),
+    selectedIndex,
+    leftSide,
+    rightSide,
+    currentPlayer
+  });
+}
+
+function undo() {
+  if (history.length === 0) return;
+  const prev = history.pop();
+  board = prev.board.map(c => ({ ...c }));
+  selectedIndex = prev.selectedIndex;
+  leftSide = prev.leftSide;
+  rightSide = prev.rightSide;
+  currentPlayer = prev.currentPlayer;
+  renderBoard();
+}
+function handleClick(idx) {
+  const cell = board[idx];
+  const mySide = currentPlayer === "left" ? leftSide : rightSide;
+
+  if (cell && cell.piece && !cell.revealed) {
+    saveHistory();
+    cell.revealed = true;
+    if (!leftSide) {
+      leftSide = cell.side;
+      rightSide = cell.side === "red" ? "black" : "red";
+      currentPlayer = "right";
+    } else {
+      currentPlayer = currentPlayer === "left" ? "right" : "left";
+    }
+    selectedIndex = null;
+    renderBoard();
+    return;
+  }
+
+  if (!cell.piece && selectedIndex !== null) {
+    if (!isValidMove(selectedIndex, idx, mySide)) return;
+    saveHistory();
+    board[idx] = { ...board[selectedIndex] };
+    board[selectedIndex] = { piece: null, revealed: true, side: null }; // ✅ 這裡確保 revealed 維持開啟
+    selectedIndex = null;
+    currentPlayer = currentPlayer === "left" ? "right" : "left";
+    renderBoard();
+    return;
+  }
+
+  if (!cell.piece || !cell.revealed) return;
+
+  if (cell.side === mySide) {
+    selectedIndex = idx;
+    renderBoard();
+    return;
+  }
+
+  if (selectedIndex !== null && isValidMove(selectedIndex, idx, mySide)) {
+    saveHistory();
+    board[idx] = { ...board[selectedIndex] };
+    board[selectedIndex] = { piece: null, revealed: true, side: null }; // ✅ 同樣保留 revealed
+    selectedIndex = null;
+    currentPlayer = currentPlayer === "left" ? "right" : "left";
+    renderBoard();
+  }
+}
+function handleClick(idx) {
+  const cell = board[idx];
+  const mySide = currentPlayer === "left" ? leftSide : rightSide;
+
+  if (cell && cell.piece && !cell.revealed) {
+    saveHistory();
+    cell.revealed = true;
+    if (!leftSide) {
+      leftSide = cell.side;
+      rightSide = cell.side === "red" ? "black" : "red";
+      currentPlayer = "right";
+    } else {
+      currentPlayer = currentPlayer === "left" ? "right" : "left";
+    }
+    selectedIndex = null;
+    renderBoard();
+    return;
+  }
+
+  if (!cell.piece && selectedIndex !== null) {
+    if (!isValidMove(selectedIndex, idx, mySide)) return;
+    saveHistory();
+    board[idx] = { ...board[selectedIndex] };
+    board[selectedIndex] = { piece: null, revealed: true, side: null }; // ✅ 這裡確保 revealed 維持開啟
+    selectedIndex = null;
+    currentPlayer = currentPlayer === "left" ? "right" : "left";
+    renderBoard();
+    return;
+  }
+
+  if (!cell.piece || !cell.revealed) return;
+
+  if (cell.side === mySide) {
+    selectedIndex = idx;
+    renderBoard();
+    return;
+  }
+
+  if (selectedIndex !== null && isValidMove(selectedIndex, idx, mySide)) {
+    saveHistory();
+    board[idx] = { ...board[selectedIndex] };
+    board[selectedIndex] = { piece: null, revealed: true, side: null }; // ✅ 同樣保留 revealed
+    selectedIndex = null;
+    currentPlayer = currentPlayer === "left" ? "right" : "left";
+    renderBoard();
+  }
+}
+function handleAIMove() {
+  const mySide = rightSide;
+  const enemySide = mySide === "red" ? "black" : "red";
+
+  const myPieces = board.map((c, i) => ({ ...c, idx: i }))
+                        .filter(c => c.piece && c.revealed && c.side === mySide);
+  const enemyPieces = board.map((c, i) => ({ ...c, idx: i }))
+                           .filter(c => c.piece && c.revealed && c.side === enemySide);
+
+  // 吃子：若可吃就吃
+  for (let a of myPieces) {
+    for (let b of enemyPieces) {
+      if (isValidMove(a.idx, b.idx, mySide)) {
+        saveHistory();
+        board[b.idx] = { ...board[a.idx] };
+        board[a.idx] = { piece: null, revealed: true, side: null };
+        currentPlayer = "left";
+        renderBoard();
+        return;
+      }
+    }
+  }
+
+  // 移動到敵人旁邊
+  for (let a of myPieces) {
+    const neighbors = [a.idx - 1, a.idx + 1, a.idx - 8, a.idx + 8]
+      .filter(i => i >= 0 && i < 32 && !board[i].piece);
+
+    for (let n of neighbors) {
+      const nearEnemy = enemyPieces.some(e =>
+        Math.abs(e.idx - n) === 1 || Math.abs(e.idx - n) === 8
+      );
+      if (nearEnemy && isValidMove(a.idx, n, mySide)) {
+        saveHistory();
+        board[n] = { ...board[a.idx] };
+        board[a.idx] = { piece: null, revealed: true, side: null };
+        currentPlayer = "left";
+        renderBoard();
+        return;
+      }
+    }
+  }
+
+  // 翻棋：若無其他動作可選
+  const unflipped = board.map((c, i) => ({ ...c, idx: i }))
+                         .filter(c => !c.revealed && c.piece);
+  if (unflipped.length > 0) {
+    const choice = unflipped[Math.floor(Math.random() * unflipped.length)];
+    saveHistory();
+    board[choice.idx].revealed = true;
+    if (!rightSide) {
+      rightSide = board[choice.idx].side;
+      leftSide = rightSide === "red" ? "black" : "red";
+    }
+    currentPlayer = "left";
+    renderBoard();
+  }
+}
+initGame();
+</script>
+</body>
+</html>
