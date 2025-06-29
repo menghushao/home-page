@@ -11,24 +11,10 @@
 <body>
 
 <section style="position: relative; display: flex; flex-wrap: wrap; justify-content: center; gap: 2em; padding: 2em 1em; font-size: 1.05rem; line-height: 1.6; background: #fffefb; max-width: 1280px; margin: auto;">
-
-  <!-- 打孔裝訂列 -->
-  <div style="position: absolute; top: 0; bottom: 0; left: 50%; transform: translateX(-50%); width: 64px; display: flex; flex-direction: column; align-items: center; justify-content: space-evenly; z-index: 1;">
-    <style>
-      .hole { width: 12px; height: 12px; background: #888; border-radius: 50%; box-shadow: inset 0 0 2px #00000060; margin: 6px 0; }
-      .ring { width: 32px; height: 14px; border: 2.5px solid #444; border-left: none; border-radius: 0 10px 10px 0; background: #ddd; margin: 6px 0; }
-    </style>
-    <div class="hole"></div><div class="ring"></div>
-    <div class="hole"></div><div class="ring"></div>
-    <div class="hole"></div><div class="ring"></div>
-    <div class="hole"></div><div class="ring"></div>
-    <div class="hole"></div><div class="ring"></div>
-  </div>
-
   <!-- 左頁：店家資訊 -->
   <div style="flex: 1 1 320px; background: #fffbe7; padding: 1.5em; border-radius: 8px 0 0 8px; box-shadow: -4px 4px 12px rgba(0,0,0,0.08); z-index: 2;">
     <h2 style="color: #e65100;">
-      <img src="https://scontent.ftpe8-3.fna.fbcdn.net/v/t39.30808-6/292094787_468717045257750_6111733142145967089_n.jpg?_nc_cat=107&amp;ccb=1-7&amp;_nc_sid=6ee11a&amp;_nc_ohc=P5wxeYtbiugQ7kNvwGhgJeT&amp;_nc_oc=AdlCkXG1xqLeMC_CbYIFUA2fBgs049GVgUPr_lQh2JmRx5JEozP7ipZXJmJZDihSf_k&amp;_nc_zt=23&amp;_nc_ht=scontent.ftpe8-3.fna&amp;_nc_gid=PqnwGT55NsutPNQyB99_yQ&amp;oh=00_AfN1h11I0KqzmfdNEQomarH6uel3O1pIeMvK3jQKcooQxA&amp;oe=6866F1A1"
+     萌虎燒   <img src="https://scontent.ftpe8-3.fna.fbcdn.net/v/t39.30808-6/292094787_468717045257750_6111733142145967089_n.jpg?_nc_cat=107&amp;ccb=1-7&amp;_nc_sid=6ee11a&amp;_nc_ohc=P5wxeYtbiugQ7kNvwGhgJeT&amp;_nc_oc=AdlCkXG1xqLeMC_CbYIFUA2fBgs049GVgUPr_lQh2JmRx5JEozP7ipZXJmJZDihSf_k&amp;_nc_zt=23&amp;_nc_ht=scontent.ftpe8-3.fna&amp;_nc_gid=PqnwGT55NsutPNQyB99_yQ&amp;oh=00_AfN1h11I0KqzmfdNEQomarH6uel3O1pIeMvK3jQKcooQxA&amp;oe=6866F1A1"
            alt="logo" style="width: 1.2em; height: 1.2em; vertical-align: middle; margin-right: 0.3em; border-radius: 3px;" />
       店家資訊
     </h2>
@@ -58,7 +44,7 @@
       <a href="https://maps.app.goo.gl/LYS2HDQx46RACmFo8" target="_blank">GOOGLE地圖</a>取得距離，填入下方欄位可估算外送門檻。
     </p>
     <p style="margin-top:1.5em;">
-      <label for="distanceInput">📍 輸入距離：</label>
+      <label for="distanceInput"></label>
       <input type="number" id="distanceInput" min="0" step="0.1" style="width: 5em;" />
       <span id="deliveryMsg" style="margin-left: 0.5em; color: #d32f2f;"></span>
     </p>
