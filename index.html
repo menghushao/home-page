@@ -18,7 +18,7 @@
            alt="logo" style="width: 1.2em; height: 1.2em; vertical-align: middle; margin-right: 0.3em; border-radius: 3px;" />
       店家資訊
     </h2>
-    <p><strong>地址：</strong>苗栗市中山路203號<br>單向雙線道，汽車停車位設置在右側，我們在左側，機/腳踏車可以停在騎樓(暫時)。</p>
+    <p><strong>地址：</strong>苗栗市中山路203號<br><em>單向雙線道，汽車停車位設置在右側，我們在左側，機/腳踏車可以停在騎樓(暫時)。</em></p>
     <p><strong>電話：</strong>
       <a href="tel:0912457104" style="color: inherit; text-decoration: underline;">0912457104</a>
     </p>
@@ -32,22 +32,20 @@
         <img src="https://upload.wikimedia.org/wikipedia/commons/5/51/Facebook_f_logo_%282019%29.svg" alt="FB" style="width: 1.4em; vertical-align: middle;" />
       </a>
     </p>
-    <p><strong>營業時間：</strong><br>週日固定休息<br>週一 ~ 五 的11:00 ~ 22:00<br>週六 的10:00 ~ 23:59</p>
-    <p><strong>臨時休息日：<br></strong>2025/07/01(二)停電<br>2025/07/03(四)~05(六)遛孩子
+    <p><strong>營業時間：</strong><br><em>週日固定休息<br>週一 ~ 五 的11:00 ~ 22:00<br>週六 的10:00 ~ 23:59</em></p>
+    <p><strong>臨時休息日：<br></strong><em>2025/07/01(二)停電<br>2025/07/03(四)~05(六)遛孩子</em>
     <p><strong>Wi-Fi 密碼：</strong>0912457104</p>
-    <p>📄 有免用統一發票章可供公司行號核銷點心費用，<br>可使用現金、LINEPAY、全支付結帳</p>
-    <p>🕓 若有營業時間外的訂單需求，可以提前跟老闆聯繫商量。</p>
-    <p>⏱️ 餐點都是現點現做，可透過電話或通訊軟體提前預訂，避免現場等待。</p>
-    <p>🚗 滿300元苗栗市門牌可外送，<br>不滿可透過
-      <a href="https://www.ubereats.com/tw/store/%E8%90%8C%E8%99%8E%E7%87%92-%E7%94%9C%E9%BB%9E-%E4%B8%8B%E5%8D%88%E8%8C%B6-%E9%BB%9E%E5%BF%83-%E9%9B%9E%E8%9B%8B%E7%B3%95/C-zADMIpWq-_9Pep-1uOVQ?diningMode=DELIVERY&ps=1&sc=SEARCH_SUGGESTION" target="_blank">UBER Eats</a>
-      點餐，市外建議透過
-      <a href="https://maps.app.goo.gl/LYS2HDQx46RACmFo8" target="_blank">GOOGLE地圖</a>取得距離(公里)，填入下方欄位估算保送門檻。
-    </p>
-    <p style="margin-top:1.5em;">
-      <label for="distanceInput"></label>
-      <input type="number" id="distanceInput" min="0" step="0.1" style="width: 5em;" />
-      <span id="deliveryMsg" style="margin-left: 0.5em; color: #d32f2f;"></span>
-    </p>
+    <p>📄 有統編章可供公司行號核銷點心費用，可使用現金、LINEPAY、全支付結帳。</p>
+    <p>⏱️ 餐點都是現點現做，可透過電話或通訊軟體提前預訂，避免現場等待。<br>🕓 若有營業時間外的訂單需求，可以提前跟老闆聯繫商量。</p>
+    <p>
+  🛵 滿300元苗栗市門牌可外送，不滿可透過
+  <a href="https://www.ubereats.com/tw/store/..." target="_blank">UBER Eats</a>
+  點餐，市外建議透過
+  <a href="https://maps.app.goo.gl/..." target="_blank">GOOGLE地圖</a>
+  避開收費路段，取得與萌虎燒的距離 (公里)，再填入上方欄位估算保送門檻。
+  <input type="number" id="distanceInput" min="0" step="0.1" style="width: 5em; margin-left: 0.3em;" />
+  <span id="deliveryMsg" style="margin-left: 0.5em; color: #d32f2f;"></span>
+</p>
     <script>
       const distanceInput = document.getElementById("distanceInput");
       const deliveryMsg = document.getElementById("deliveryMsg");
@@ -58,11 +56,12 @@
         if (fullKM <= 3) amount = 300;
         else if (fullKM <= 15) amount = 300 + (fullKM - 3) * 100;
         else amount = 300 + (fullKM - 3) * 150;
-        deliveryMsg.textContent = `需滿 ${amount} 元可外送，請先聯繫店家確認`;
+        deliveryMsg.textContent = `需滿 ${amount} 元，請先聯繫店家確認`;
       });
     </script>
-    <p>🚫 我們「不」提供塑膠袋和吸管，<br>外送量大會使用二手但乾淨的紙箱。</p>
-    <p>⚠️ 偶有麵糊沒完全熟透的情況，這無法完全避免，<br>若發生了請告訴我們，我們將直接退回餐點費用。</p>
+    <p>🚫 我們「不」提供塑膠袋和吸管，雞蛋糕單次消費滿5份，會提供一個不織布提網，滿12份再加贈萌虎不織布提袋，外送量大會使用二手但乾淨的紙箱。</p>
+<p>單次消費滿60元可獲得集點卡1點，餐點滿6份點數雙倍，滿12份直接折抵1份，點數改贈1點。集滿10點可兌換任何口味雞蛋糕1份。</p>
+    <p>⚠️ 偶有麵糊沒完全熟透的情況，這無法完全避免，若發生了請告訴我們，我們將直接退回餐點費用。</p>
     <p>🛍️ <a href="https://reurl.cc/Aym5rE" target="_blank">[萌虎燒-石虎小貓貓] LINE 貼圖</a></p>
   </div>
   <!-- 右頁：菜單與點餐 -->
@@ -70,19 +69,19 @@
     <h2 style="color: #e65100;">🐣 雞蛋糕</h2>
     <p><strong>一份皆為 2 顆</strong>，可混搭不同口味與價位。</p>
     <ul>
-      <li><strong>純雞蛋糕</strong>：2 顆 <strong>20元</strong>，<em>組合價</em> <strong>10元</strong><br>只有蛋糕體</li>
-      <li><strong>單餡雞蛋糕</strong>：2 顆 <strong>30元</strong>，<em>組合價</em> <strong>15元</strong><br>巧克力、奶油、鹹蛋黃、抹茶、紅豆、芝麻、蒜香、梅子花生、草莓</li>
-      <li><strong>雙餡雞蛋糕</strong>：2 顆 <strong>35元</strong>，<em>組合價</em> <strong>20元</strong><br>奶油鹹蛋、雙色乳酪、抹茶紅豆、抹茶巧克力、芝麻巧克力、花生巧克力、玉米濃湯</li>
+      <li><strong>純雞蛋糕</strong>：2 顆 20元，組合價10元<br><em>只有蛋糕體</em></li>
+      <li><strong>單餡雞蛋糕</strong>：2 顆 30元，組合價 15元<br><em>巧克力、奶油、鹹蛋黃、抹茶、紅豆、芝麻、蒜香、梅子花生、草莓</em></li>
+      <li><strong>雙餡雞蛋糕</strong>：2 顆 35元，組合價20元<br><em>奶油鹹蛋、雙色乳酪、抹茶紅豆、抹茶巧克力、芝麻巧克力、花生巧克力、玉米濃湯</em></li>
     </ul>
 
     <hr style="margin: 2em 0;">
 
-    <h2 style="color: #00796b;">🧋 飲料</h2>
+    <h2 style="color: #00796b;">🧋 飲品</h2>
     <p><strong>自備悲劇折 10 元</strong>！甜度無法調整，冰塊可調整。</p>
     <ul>
-      <li>冬瓜茶：外帶 480mL 25元 ／ 內用 240mL 10元</li>
-      <li>冬瓜鮮奶：外帶 480mL 45元 ／ 內用 240mL 25元</li>
-      <li>燒仙草（熱）：外帶 480mL 40元（目前停供）／ 內用 240mL 20元</li>
+      <li><strong>冬瓜茶</strong>：外帶 480mL 25元 ／ 內用 240mL 10元</li>
+      <li><strong>冬瓜鮮奶</strong>：外帶 480mL 45元 ／ 內用 240mL 25元</li>
+      <li><strong>燒仙草（熱）</strong>：外帶 480mL 40元（目前停供）／ 內用 240mL 20元</li>
     </ul>
 
     <hr style="margin: 2em 0;">
@@ -105,8 +104,7 @@
       <li><strong>美式</strong>：內用 240mL 35元 ／ 外帶 480mL 60元</li>
       <li><strong>拿鐵</strong>：內用 240mL 55元 ／ 外帶 480mL 95元</li>
       <li><strong>萌翻拿鐵（限定內用）</strong>：240mL  
-        <br><em>奶泡灑上一隻萌虎巧克力粉圖案。灑成功是萌翻拿鐵65元；灑失敗就是憨翻拿鐵55元</em><br>
-        失敗就是失敗，老闆不會再重做一杯，所以親愛的萌友們要承擔一點點的風險 🐯💥
+        <br><em>奶泡灑上一隻萌虎巧克力粉圖案。灑成功是萌翻拿鐵65元，失敗就是憨翻拿鐵55元，老闆不會再重做一杯，所以親愛的萌友們要承擔一點點的風險</em> 🐯💥
       </li>
     </ul>
 
