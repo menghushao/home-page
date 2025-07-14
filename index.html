@@ -127,9 +127,13 @@
   </div>
 </section>
 
-</body>
-  <span id="busuanzi_container_site_pv" style="font-size:14px;">
-  本站瀏覽人次：<script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+<!-- ✅ 瀏覽人次區塊正確放置在 <body> 結尾處 -->
+<div style="text-align: center; margin: 2em 0; font-size: 14px;">
+  本站瀏覽人次：<span id="busuanzi_value_site_pv"></span>
+</div>
 
-<script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+<!-- ✅ script 放在 <body> 結尾 -->
+<script async src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script>
+
+</body>
 </html>
