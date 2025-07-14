@@ -127,22 +127,14 @@
   </div>
 </section>
 
-<!-- ✅ 瀏覽人次區塊正確放置在 <body> 結尾處 -->
+<!-- ✅ 瀏覽人次區塊：使用 vercount.one，穩定顯示人次 -->
 <div style="text-align: center; margin: 2em 0; font-size: 14px;">
-  🐾 來訪萌友第 <span id="visitorCount">載入中...</span> 位！
+  🐾 來訪萌友第 <span id="busuanzi_value_site_pv">載入中...</span> 位！
 </div>
 
-<script>
-  fetch("https://api.countapi.xyz/update/menghushao/visitor?amount=1")
-    .then(res => res.json())
-    .then(data => {
-      document.getElementById("visitorCount").textContent = data.value;
-    })
-    .catch(() => {
-      document.getElementById("visitorCount").textContent = "暫時無法載入";
-    });
-</script>
+<script async src="https://vercount.one/js"></script>
 
+  
 
 </body>
 </html>
