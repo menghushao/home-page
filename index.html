@@ -129,10 +129,20 @@
 
 <!-- ✅ 瀏覽人次區塊正確放置在 <body> 結尾處 -->
 <div style="text-align: center; margin: 2em 0; font-size: 14px;">
-  本站瀏覽人次：<span id="busuanzi_value_site_pv">載入中...</span>
+  🐾 來訪萌友第 <span id="visitorCount">載入中...</span> 位！
 </div>
 
-<script async src="https://cdn.jsdelivr.net/gh/Pil0tXia/busuanzi-modified/busuanzi.pure.mini.js"></script>
+<script>
+  fetch("https://api.countapi.xyz/update/menghushao/visitor?amount=1")
+    .then(res => res.json())
+    .then(data => {
+      document.getElementById("visitorCount").textContent = data.value;
+    })
+    .catch(() => {
+      document.getElementById("visitorCount").textContent = "暫時無法載入";
+    });
+</script>
+
 
 </body>
 </html>
