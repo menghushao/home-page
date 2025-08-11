@@ -381,7 +381,7 @@
   <div class="mh-field"><label for="mh-phone">電話</label><input id="mh-phone" type="tel" class="mh-input" placeholder="0912-345678"></div>
 
   <div class="mh-field">
-    <label for="mh-channel">發送媒介</label>
+    <label for="mh-channel">訂餐仍須透過通訊軟體，推薦使用LINE可以更快得到回覆</label>
     <select id="mh-channel" class="mh-select">
       <option value="LINE|https://reurl.cc/qZAE2y">LINE</option>
       <option value="FB|https://m.me/menghushao">FB</option>
@@ -409,7 +409,7 @@
   </div>
   <div class="mh-field">
     <label for="mh-qty">數量</label>
-    <input id="mh-qty" class="mh-number" type="number" min="1" step="1" value="1" />
+    <input id="mh-qty" class="mh-number" type="number" min="1" step="1" value="1">
   </div>
 </div>
 
@@ -439,7 +439,7 @@
       <button id="mh-add-inline" class="mh-btn primary">加入購物車</button>
       <button id="mh-reset-inline" class="mh-btn">清空</button>
     </div>
-  </div>
+  
 </section>
 
 
@@ -733,9 +733,9 @@
       alert(alertText || '已複製訂單。');
     }
   }
-  copyBtn.addEventListener('click', ()=> copyMessage('已複製訂單。'));
+  copyBtn.addEventListener('click', ()=> copyMessage('已複製訂單內容'));
   sendBtn.addEventListener('click', async ()=>{
-    await copyMessage('已複製訂單，請稍後將自動開啟通訊軟體，貼上送出即可。');
+    await copyMessage('已複製訂單內容，稍後將自動開啟通訊軟體，請親手貼上送出。');
     const [t,url]=channelSel.value.split('|');
     window.open(url,'_blank');
   });
@@ -828,5 +828,6 @@
   window.addEventListener('scroll', maybeReposition);
 })();
 </script>
+
 
 </body></html>
