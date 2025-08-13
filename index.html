@@ -3,7 +3,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>萌虎燒 | 雞蛋糕・甜點・下午茶 (v1.7.33)</title>
+  <title>萌虎燒 | 雞蛋糕・甜點・下午茶 (v1.7.18)</title>
   <meta name="description" content="萌虎燒是苗栗市的現點現做雞蛋糕專賣店，提供多種創意口味與飲品，支援外送與線上點餐。">
   <meta name="keywords" content="萌虎燒,雞蛋糕,苗栗雞蛋糕,甜點,下午茶,苗栗點心,萌虎燒菜單,萌虎燒訂購">
 
@@ -241,6 +241,70 @@
 #mh-b-wrap{ display: none; }
 </style>
 
+
+<style>
+/* v1.7.17 — anchor buttons & drawers inside #menu-root; no internal scroll; toggle 點餐 via same button */
+#menu-root{ position: relative; overflow: visible; }
+
+/* place two buttons inside menu frame, bottom-right, one left one right */
+#mh-floating{
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  width: min(320px, 48%);
+  align-items: end;
+  z-index: 50;
+}
+
+/* ensure original fixed positioning is disabled when inside the floating container */
+#mh-floating .mh-fab,
+#mh-floating #mh-cart-fab{
+  position: static !important;
+  transform: none !important;
+  right: auto !important; left: auto !important; top: auto !important; bottom: auto !important;
+  margin: 0 !important;
+}
+
+/* Cart & Panel become bottom drawers INSIDE the menu frame; width ~ menu width (slightly inset) */
+.mh-cart, .mh-panel{
+  position: absolute !important;
+  left: 12px !important;
+  right: 12px !important;
+  bottom: calc(12px + 44px + 8px) !important;  /* stay just above the two buttons */
+  top: auto !important;
+  width: auto !important; max-width: none !important;
+  height: auto !important; max-height: none !important;
+  overflow: visible !important;   /* no inner scrollbars */
+  transform: none !important;
+  border-radius: 12px !important;
+  z-index: 40 !important;
+  box-shadow: 0 10px 24px rgba(0,0,0,.12);
+  opacity: 0; visibility: hidden; pointer-events: none;
+}
+.mh-cart.open, .mh-panel.open{
+  opacity: 1; visibility: visible; pointer-events: auto;
+}
+
+/* Make inner areas adapt instead of scrolling */
+.mh-panel-body{ overflow: visible !important; }
+.mh-actions-inline,
+.mh-cart .mh-panel-actions{ position: static !important; box-shadow: none !important; }
+
+/* Avoid content overflow in grid children */
+.mh-field, .mh-row-2, .mh-row-3 { min-width: 0 !important; }
+</style>
+
+
+<style>
+/* v1.7.18 — raise z-index, ensure pointer events, and keep buttons side-by-side */
+#mh-floating{ z-index: 10050 !important; pointer-events: auto !important; }
+#mh-floating .mh-fab, #mh-floating #mh-cart-fab{ pointer-events: auto !important; }
+.mh-cart, .mh-panel{ z-index: 10040 !important; } /* below buttons but above content */
+</style>
+
 </head>
 <body>
 
@@ -381,7 +445,7 @@
   <div class="mh-field"><label for="mh-phone">電話</label><input id="mh-phone" type="tel" class="mh-input" placeholder="0912-345678"></div>
 
   <div class="mh-field">
-    <label for="mh-channel">發送媒介</label>
+    <label for="mh-channel">訂餐仍須透過通訊軟體，推薦使用LINE可以更快得到回覆</label>
     <select id="mh-channel" class="mh-select">
       <option value="LINE|https://reurl.cc/qZAE2y">LINE</option>
       <option value="FB|https://m.me/menghushao">FB</option>
@@ -409,7 +473,7 @@
   </div>
   <div class="mh-field">
     <label for="mh-qty">數量</label>
-    <input id="mh-qty" class="mh-number" type="number" min="1" step="1" value="1" />
+    <input id="mh-qty" class="mh-number" type="number" min="1" step="1" value="1">
   </div>
 </div>
 
@@ -439,7 +503,7 @@
       <button id="mh-add-inline" class="mh-btn primary">加入購物車</button>
       <button id="mh-reset-inline" class="mh-btn">清空</button>
     </div>
-  </div>
+  
 </section>
 
 
@@ -733,9 +797,9 @@
       alert(alertText || '已複製訂單。');
     }
   }
-  copyBtn.addEventListener('click', ()=> copyMessage('已複製訂單。'));
+  copyBtn.addEventListener('click', ()=> copyMessage('已複製訂單內容'));
   sendBtn.addEventListener('click', async ()=>{
-    await copyMessage('已複製訂單，請稍後將自動開啟通訊軟體，貼上送出即可。');
+    await copyMessage('已複製訂單內容，稍後將自動開啟通訊軟體，請親手貼上送出。');
     const [t,url]=channelSel.value.split('|');
     window.open(url,'_blank');
   });
@@ -830,425 +894,96 @@
 </script>
 
 
-<style>
-/* === v1.7.30 — Return-to-base patch (menu-anchored FABs & drawers; autoscale; two-mode) === */
-/* CSS variables driven by JS (computed from #menu-root rect) */
-:root{
-  --mhx-right-inset: 12px;  /* viewportRight -> menuRight + 12px (inside) */
-  --mhx-left-inset: 12px;   /* menuLeft + 12px (inside) */
-}
-/* Ensure menu is the positioning context in large mode */
-#menu-root{ position: relative !important; }
-
-/* Floating buttons wrapper we will create inside #menu-root */
-.mhx-fabs{
-  display: flex; gap: 8px; align-items: center;
-}
-/* Reset legacy positioning on the two FABs when inside our wrap */
-.mhx-fabs #mh-fab, .mhx-fabs #mh-cart-fab{
-  position: static !important;
-  left: auto !important; right: auto !important; top: auto !important; bottom: auto !important;
-  transform: none !important; margin: 0 !important;
-}
-
-/* LARGE MODE (no page scroll): buttons & drawers sit INSIDE the menu box */
-html.mhx-large .mhx-fabs{
-  position: absolute !important;
-  right: 12px !important; bottom: 12px !important; z-index: 10010 !important;
-}
-html.mhx-large #mh-cart, html.mhx-large #mh-panel{
-  position: absolute !important;
-  left: 12px !important; right: 12px !important;
-  bottom: 64px !important; top: auto !important;
-  height: 33vh !important; max-height: 33vh !important;
-  border-radius: 12px !important; transform: none !important;
-  overflow: hidden !important; z-index: 10005 !important;
-}
-
-/* SIDE MODE (needs page scroll): buttons & drawers float FIXED, but aligned to the menu borders */
-html.mhx-side .mhx-fabs{
-  position: fixed !important;
-  right: var(--mhx-right-inset) !important; bottom: 12px !important;
-  z-index: 10020 !important;
-}
-html.mhx-side #mh-cart, html.mhx-side #mh-panel{
-  position: fixed !important;
-  left: var(--mhx-left-inset) !important; right: var(--mhx-right-inset) !important;
-  bottom: 64px !important; top: auto !important;
-  height: 33vh !important; max-height: 33vh !important;
-  border-radius: 12px !important; transform: none !important;
-  overflow: hidden !important; z-index: 10015 !important;
-}
-
-/* Visibility keeps using existing .open class */
-#mh-cart, #mh-panel{ opacity: 0; visibility: hidden; pointer-events: none; }
-#mh-cart.open, #mh-panel.open{ opacity:1; visibility: visible; pointer-events:auto; }
-
-/* Drawer content autoscale to avoid crowding on small screens */
-#mh-cart, #mh-panel{
-  container-type: inline-size; box-sizing: border-box;
-  display: flex; flex-direction: column; contain: layout paint style;
-  font-size: clamp(12px, 1.8cqw, 16px); line-height: 1.25;
-  word-break: break-word; overflow-wrap: anywhere;
-}
-#mh-panel .mh-panel-head, #mh-cart .mh-panel-head,
-#mh-panel .mh-panel-actions, #mh-cart .mh-panel-actions{ flex: 0 0 auto; }
-#mh-panel .mh-panel-body, #mh-cart .mh-panel-body{ flex: 1 1 auto; min-height: 0; overflow: hidden; }
-#mh-panel *, #mh-cart *{ max-width: 100%; }
-
-/* Scale common controls */
-#mh-panel button, #mh-cart button, #mh-panel .btn, #mh-cart .btn{
-  font-size: clamp(12px, 1.8cqw, 16px) !important;
-  padding: clamp(6px, 1.4cqw, 10px) clamp(10px, 2.4cqw, 14px) !important;
-  border-radius: clamp(6px, 1.2cqw, 10px) !important;
-}
-#mh-panel input, #mh-panel select, #mh-panel textarea,
-#mh-cart input,  #mh-cart select,  #mh-cart textarea{
-  font-size: clamp(12px, 1.8cqw, 16px) !important;
-  padding: clamp(6px, 1.4cqw, 10px) clamp(10px, 2.4cqw, 14px) !important;
-  border-radius: clamp(6px, 1.2cqw, 10px) !important;
-}
-
-/* Neutralize mobile bottom-sheet transforms when our modes are active */
-html.mhx-large .mh-panel, html.mhx-side .mh-panel{ box-shadow: 0 10px 24px rgba(0,0,0,.12) !important; }
-html.mhx-large .mh-panel, html.mhx-side .mh-panel,
-html.mhx-large .mh-cart,  html.mhx-side .mh-cart{
-  transform: none !important;
-}
-</style>
 
 <script>
-// === v1.7.30 — Single-pass placement: within-menu on large (no scroll), side-fixed on small (scroll) ===
+// v1.7.17 — move buttons & drawers inside #menu-root and make 點餐 button toggle open/close
 (function(){
-  function ready(fn){ if(document.readyState !== 'loading'){ fn(); } else { document.addEventListener('DOMContentLoaded', fn); } }
-  function $(id){ return document.getElementById(id); }
+  const menuRoot = document.getElementById('menu-root');
+  const orderFab = document.getElementById('mh-fab');
+  const cartFab  = document.getElementById('mh-cart-fab');
+  const cartEl   = document.getElementById('mh-cart');
+  const panel    = document.getElementById('mh-panel');
+  const cartClose= document.getElementById('mh-cart-close');
+  const panelClose= document.getElementById('mh-close');
 
-  function mount(){
-    const menu = document.getElementById('menu-root');
-    const orderBtn = $('mh-fab');
-    const cartBtn  = $('mh-cart-fab');
-    const cart     = $('mh-cart');
-    const panel    = $('mh-panel');
-    if(!menu || !orderBtn || !cartBtn || !cart || !panel) return;
+  if (menuRoot){
+    // wrap both buttons into a single floating container inside the menu frame
+    const wrap = document.createElement('div');
+    wrap.id = 'mh-floating';
+    // append buttons
+    if (orderFab) wrap.appendChild(orderFab);
+    if (cartFab)  wrap.appendChild(cartFab);
+    // attach
+    menuRoot.appendChild(wrap);
 
-    // Build the FAB wrapper INSIDE the menu (so absolute works in large mode)
-    let wrap = menu.querySelector('.mhx-fabs');
-    if(!wrap){
+    // move drawers inside the menu so they follow scroll with the menu
+    if (cartEl)  menuRoot.appendChild(cartEl);
+    if (panel)   menuRoot.appendChild(panel);
+  }
+
+  // disable previous desktop placement logic if present
+  try{
+    window.removeEventListener('resize', window.placeDesktop || (()=>{}));
+    window.removeEventListener('scroll',  window.placeDesktop || (()=>{}));
+  }catch(e){}
+
+  function isOpen(el){ return el && el.classList.contains('open'); }
+  function toggle(el, force){
+    if (!el) return;
+    const on = (typeof force === 'boolean') ? force : !isOpen(el);
+    el.classList.toggle('open', on);
+    el.setAttribute('aria-hidden', on ? 'false' : 'true');
+  }
+
+  // 點餐：點同一顆可開/收
+  orderFab?.addEventListener('click', (ev)=>{ ev.preventDefault(); toggle(panel); });
+  panelClose?.addEventListener('click', (ev)=>{ ev.preventDefault(); toggle(panel, false); });
+
+  // 購物車：維持原本點同一顆可開/收，並保留內部收合鈕
+  cartFab?.addEventListener('click', (ev)=>{ ev.preventDefault(); toggle(cartEl); });
+  cartClose?.addEventListener('click', (ev)=>{ ev.preventDefault(); toggle(cartEl, false); });
+})();
+</script>
+
+
+<script>
+// v1.7.18 — robust toggle (capture-phase) to avoid older handlers breaking clicks
+(function(){
+  const $ = (id)=>document.getElementById(id);
+  const menuRoot = $('menu-root');
+  const orderFab = $('mh-fab');
+  const cartFab  = $('mh-cart-fab');
+  const cartEl   = $('mh-cart');
+  const panel    = $('mh-panel');
+  const cartClose= $('mh-cart-close');
+  const panelClose= $('mh-close');
+
+  // Ensure elements live under #menu-root so they scroll with the menu
+  if (menuRoot){
+    // Create container once
+    let wrap = document.getElementById('mh-floating');
+    if (!wrap){
       wrap = document.createElement('div');
-      wrap.className = 'mhx-fabs';
-      menu.appendChild(wrap);
+      wrap.id = 'mh-floating';
+      menuRoot.appendChild(wrap);
     }
-
-    // Move the FABs into the wrapper (end of document ensures we override prior placement)
-    if(orderBtn.parentNode !== wrap) wrap.appendChild(orderBtn);
-    if(cartBtn.parentNode  !== wrap) wrap.appendChild(cartBtn);
-
-    // Move drawers under menu so absolute layout uses menu as containing block in large mode
-    if(cart.parentNode !== menu) menu.appendChild(cart);
-    if(panel.parentNode !== menu) menu.appendChild(panel);
-
-    // Clear any legacy inline placement set by older scripts
-    [orderBtn, cartBtn, cart, panel].forEach(el=>{
-      el.style.left=''; el.style.right=''; el.style.top=''; el.style.bottom='';
-      el.style.position=''; el.style.transform='';
-    });
+    if (orderFab && orderFab.parentElement !== wrap) wrap.appendChild(orderFab);
+    if (cartFab  && cartFab.parentElement !== wrap)  wrap.appendChild(cartFab);
+    if (cartEl   && cartEl.parentElement  !== menuRoot) menuRoot.appendChild(cartEl);
+    if (panel    && panel.parentElement   !== menuRoot) menuRoot.appendChild(panel);
   }
 
-  function computeInsets(){
-    const html = document.documentElement;
-    const menu = document.getElementById('menu-root');
-    if(!menu) return;
-    const r = menu.getBoundingClientRect();
-    const vw = window.innerWidth  || document.documentElement.clientWidth;
+  function isOpen(el){ return el?.classList.contains('open'); }
+  function show(el){ if(!el) return; el.classList.add('open'); el.setAttribute('aria-hidden','false'); }
+  function hide(el){ if(!el) return; el.classList.remove('open'); el.setAttribute('aria-hidden','true'); }
+  function toggle(el){ if(!el) return; (isOpen(el)?hide:show)(el); }
 
-    const right = Math.max(12, Math.round(vw - r.right + 12));
-    const left  = Math.max(12, Math.round(r.left + 12));
-    html.style.setProperty('--mhx-right-inset', right + 'px');
-    html.style.setProperty('--mhx-left-inset',  left  + 'px');
-  }
+  // Capture-phase to run before legacy listeners; also stopImmediatePropagation to prevent double handling
+  orderFab?.addEventListener('click', (ev)=>{ ev.preventDefault(); ev.stopImmediatePropagation(); ev.stopPropagation(); toggle(panel); }, true);
+  panelClose?.addEventListener('click', (ev)=>{ ev.preventDefault(); ev.stopImmediatePropagation(); ev.stopPropagation(); hide(panel); }, true);
 
-  function chooseMode(){
-    const html = document.documentElement;
-    // "Large" precisely = no vertical scroll needed for the page content
-    const noScroll = (Math.ceil(document.documentElement.scrollHeight - (window.innerHeight||0)) <= 0);
-    html.classList.toggle('mhx-large',  noScroll);
-    html.classList.toggle('mhx-side',  !noScroll);
-  }
-
-  function tick(){ mount(); chooseMode(); computeInsets(); }
-
-  ready(function(){
-    // Run once after base scripts finish positioning
-    setTimeout(tick, 0);
-    // Re-run on resize/scroll/orientation (keeps buttons aligned & side-fixed following scroll)
-    window.addEventListener('resize', tick, {passive:true});
-    window.addEventListener('scroll', tick, {passive:true});
-    window.addEventListener('orientationchange', tick);
-  });
-})();
-</script>
-
-
-<style>
-/* === v1.7.31 — 點餐可開闔 + 抽屜內容自適應等比縮放（不捲動） === */
-.mhx-scale-host{
-  position: relative;
-  display: flex;
-  align-items: flex-start;
-  justify-content: flex-start;
-  overflow: hidden !important;   /* no scrollbars */
-  flex: 1 1 auto; min-height: 0;
-}
-.mhx-scale-wrap{
-  transform-origin: top left;
-  will-change: transform;
-  /* prevent wrapping artifacts during scale */
-  box-sizing: border-box;
-}
-/* Make sure panel/cart act as flex column parents so host can take remaining height */
-#mh-panel, #mh-cart{
-  display: flex;
-  flex-direction: column;
-}
-/* Prefer the panel body as host if it exists */
-#mh-panel .mh-panel-body.mhx-scale-host{ flex: 1 1 auto; min-height: 0; }
-</style>
-
-<script>
-// === v1.7.31 — Robust order toggle + content autoscale (fits 33vh) ===
-(function(){
-  function ready(fn){ if(document.readyState!=='loading'){ fn(); } else { document.addEventListener('DOMContentLoaded', fn); } }
-  function $(id){ return document.getElementById(id); }
-
-  // Toggle wiring for "點餐"（mh-fab）與購物車互斥
-  function wireToggles(){
-    const orderBtn = $('mh-fab');
-    const cartBtn  = $('mh-cart-fab');
-    const order    = $('mh-panel');
-    const cart     = $('mh-cart');
-    if(!orderBtn || !order || !cart) return;
-
-    // Avoid duplicate binding
-    orderBtn.dataset.mhxBound !== '1' && orderBtn.addEventListener('click', function(ev){
-      ev.preventDefault(); ev.stopPropagation();
-      const isOpen = order.classList.contains('open');
-      cart.classList.remove('open');
-      if(isOpen){
-        order.classList.remove('open');
-        orderBtn.setAttribute('aria-expanded','false');
-      }else{
-        order.classList.add('open');
-        orderBtn.setAttribute('aria-expanded','true');
-        // autoscale when opened
-        setTimeout(()=>{ mhxAutoscale(order); }, 0);
-      }
-    });
-    orderBtn.dataset.mhxBound = '1';
-
-    // When cart opens (by its own existing handler), close order & autoscale cart
-    const mo = new MutationObserver(()=>{
-      if(cart.classList.contains('open')){
-        order.classList.remove('open');
-        if(cartBtn) cartBtn.setAttribute('aria-expanded','true');
-        // autoscale when opened
-        setTimeout(()=>{ mhxAutoscale(cart); }, 0);
-      }
-    });
-    mo.observe(cart, {attributes:true, attributeFilter:['class']});
-
-    // Click outside / ESC 關閉
-    document.addEventListener('click', function(e){
-      const t = e.target;
-      const withinOrder = order.contains(t) || (orderBtn && orderBtn.contains(t));
-      const withinCart  = cart.contains(t)  || (cartBtn && cartBtn.contains(t));
-      if(!withinOrder) order.classList.remove('open');
-      if(!withinCart)  cart.classList.remove('open');
-    });
-    document.addEventListener('keydown', function(e){
-      if(e.key === 'Escape'){ order.classList.remove('open'); cart.classList.remove('open'); }
-    });
-  }
-
-  // Build scale host/wrap for a drawer element (cart or panel) and scale to fit
-  function mhxEnsureScale(el){
-    if(!el) return null;
-    // Prefer panel body as host if exists
-    let host = el.querySelector('.mh-panel-body') || el;
-    if(!host.classList.contains('mhx-scale-host')){
-      host.classList.add('mhx-scale-host');
-      // Create wrap and move children
-      const wrap = document.createElement('div');
-      wrap.className = 'mhx-scale-wrap';
-      // Move all children nodes into wrap
-      while(host.firstChild){
-        wrap.appendChild(host.firstChild);
-      }
-      host.appendChild(wrap);
-    }
-    return host.querySelector('.mhx-scale-wrap');
-  }
-
-  function mhxAutoscale(el){
-    const wrap = mhxEnsureScale(el);
-    if(!wrap) return;
-    const host = wrap.parentElement;
-
-    // Reset scale to measure natural size
-    wrap.style.transform = 'none';
-    wrap.style.width = 'auto';
-    wrap.style.height = 'auto';
-
-    // Defer to next frame to ensure layout is settled
-    requestAnimationFrame(()=>{
-      const W = host.clientWidth;
-      const H = host.clientHeight;
-      // natural content size
-      const contentW = wrap.scrollWidth;
-      const contentH = wrap.scrollHeight;
-      if(!W || !H || !contentW || !contentH) return;
-      // Fit both width & height (do not upscale above 1)
-      const s = Math.min(1, W / contentW, H / contentH);
-      wrap.style.transform = 'scale(' + s + ')';
-      // Keep wrap's width/height at natural to avoid reflow jitter
-      wrap.style.width = contentW + 'px';
-      wrap.style.height = contentH + 'px';
-    });
-  }
-
-  // Re-scale on resize/orientationchange/when drawers open
-  function attachResizers(){
-    const order = $('mh-panel');
-    const cart  = $('mh-cart');
-    const rescale = ()=>{
-      if(order && order.classList.contains('open')) mhxAutoscale(order);
-      if(cart  && cart.classList.contains('open'))  mhxAutoscale(cart);
-    };
-    window.addEventListener('resize', rescale, {passive:true});
-    window.addEventListener('orientationchange', rescale);
-  }
-
-  ready(function(){
-    wireToggles();
-    attachResizers();
-  });
-})();
-</script>
-
-
-<script>
-// === v1.7.32 — Force-rebind '點餐' toggle (clone button, manage aria, autoscale) ===
-(function(){
-  function ready(fn){ if(document.readyState!=='loading'){ fn(); } else { document.addEventListener('DOMContentLoaded', fn); } }
-  function $(id){ return document.getElementById(id); }
-
-  ready(function(){
-    const panel = $('mh-panel');
-    const cart  = $('mh-cart');
-    let   btn   = $('mh-fab'); // 點餐
-
-    if(!panel || !btn) return;
-
-    // Clone to remove any legacy listeners or event blockers
-    const cloned = btn.cloneNode(true);
-    if(btn.parentNode) btn.parentNode.replaceChild(cloned, btn);
-    btn = cloned;
-
-    // Basic ARIA
-    btn.setAttribute('role', 'button');
-    btn.setAttribute('aria-controls', 'mh-panel');
-    btn.setAttribute('aria-expanded', panel.classList.contains('open') ? 'true' : 'false');
-
-    // Helper funcs
-    function openPanel(){
-      if(cart) cart.classList.remove('open');
-      panel.classList.add('open');
-      panel.setAttribute('aria-hidden','false');
-      btn.setAttribute('aria-expanded','true');
-      // kick autoscale if available
-      try{ if(typeof mhxAutoscale==='function') mhxAutoscale(panel); }catch(e){}
-    }
-    function closePanel(){
-      panel.classList.remove('open');
-      panel.setAttribute('aria-hidden','true');
-      btn.setAttribute('aria-expanded','false');
-    }
-    function togglePanel(){
-      if(panel.classList.contains('open')) closePanel(); else openPanel();
-    }
-
-    // Click binding (strong)
-    btn.addEventListener('click', function(ev){
-      ev.preventDefault();
-      ev.stopPropagation();
-      ev.stopImmediatePropagation();
-      togglePanel();
-    });
-
-    // Keyboard support
-    btn.addEventListener('keydown', function(e){
-      if(e.key==='Enter' || e.key===' '){ e.preventDefault(); togglePanel(); }
-    });
-
-    // Close on outside click / ESC (reuse existing listeners still OK)
-    document.addEventListener('keydown', function(e){
-      if(e.key==='Escape') closePanel();
-    });
-    document.addEventListener('click', function(e){
-      const t = e.target;
-      if(!panel.contains(t) && !btn.contains(t)) closePanel();
-    }, true);
-  });
-})();
-</script>
-
-
-<script>
-// === v1.7.33 — Cart「編輯」可打開【點餐】抽屜（互斥 + 自適應縮放） ===
-(function(){
-  function ready(fn){ if(document.readyState!=='loading'){ fn(); } else { document.addEventListener('DOMContentLoaded', fn); } }
-  function $(id){ return document.getElementById(id); }
-
-  // Open the order panel explicitly (no toggle), close cart
-  function mhxForceOpenPanel(){
-    var panel = $('mh-panel');
-    var cart  = $('mh-cart');
-    var btn   = $('mh-fab');
-    if(cart) cart.classList.remove('open');
-    if(panel){
-      panel.classList.add('open');
-      panel.setAttribute('aria-hidden','false');
-    }
-    if(btn) btn.setAttribute('aria-expanded','true');
-    try{ if(typeof mhxAutoscale==='function') mhxAutoscale(panel); }catch(e){}
-  }
-
-  ready(function(){
-    var cart = $('mh-cart');
-    if(!cart) return;
-
-    // Delegate clicks inside cart to detect "編輯" actions and open the order panel
-    if(cart.dataset.mhxEditBound==='1') return;
-    cart.dataset.mhxEditBound = '1';
-
-    cart.addEventListener('click', function(e){
-      var t = e.target;
-      if(!t) return;
-      // Find nearest actionable element
-      var el = t.closest('button, a, [role="button"], .mh-edit, .edit');
-      if(!el) return;
-
-      var text = ((el.getAttribute('title')||'') + ' ' + (el.textContent||'')).toLowerCase();
-      var id   = (el.id||'').toLowerCase();
-      var cls  = (el.className||'').toLowerCase();
-      var da   = (el.getAttribute('data-action')||'').toLowerCase();
-
-      var looksEdit = da==='edit' || id.includes('edit') || cls.includes('edit') || text.includes('編輯') || text.includes('edit');
-      if(!looksEdit) return;
-
-      // Let any existing handlers run first (they may set up form values), then open the panel
-      setTimeout(mhxForceOpenPanel, 0);
-    }, true); // capture true to catch even when bubbling is stopped
-  });
+  cartFab?.addEventListener('click', (ev)=>{ ev.preventDefault(); ev.stopImmediatePropagation(); ev.stopPropagation(); toggle(cartEl); }, true);
+  cartClose?.addEventListener('click', (ev)=>{ ev.preventDefault(); ev.stopImmediatePropagation(); ev.stopPropagation(); hide(cartEl); }, true);
 })();
 </script>
 
