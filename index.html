@@ -3,7 +3,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>萌虎燒 | 雞蛋糕・甜點・下午茶 (v1.7.30)</title>
+  <title>萌虎燒 | 雞蛋糕・甜點・下午茶 (v1.7.33)</title>
   <meta name="description" content="萌虎燒是苗栗市的現點現做雞蛋糕專賣店，提供多種創意口味與飲品，支援外送與線上點餐。">
   <meta name="keywords" content="萌虎燒,雞蛋糕,苗栗雞蛋糕,甜點,下午茶,苗栗點心,萌虎燒菜單,萌虎燒訂購">
 
@@ -984,6 +984,270 @@ html.mhx-large .mh-cart,  html.mhx-side .mh-cart{
     window.addEventListener('resize', tick, {passive:true});
     window.addEventListener('scroll', tick, {passive:true});
     window.addEventListener('orientationchange', tick);
+  });
+})();
+</script>
+
+
+<style>
+/* === v1.7.31 — 點餐可開闔 + 抽屜內容自適應等比縮放（不捲動） === */
+.mhx-scale-host{
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  overflow: hidden !important;   /* no scrollbars */
+  flex: 1 1 auto; min-height: 0;
+}
+.mhx-scale-wrap{
+  transform-origin: top left;
+  will-change: transform;
+  /* prevent wrapping artifacts during scale */
+  box-sizing: border-box;
+}
+/* Make sure panel/cart act as flex column parents so host can take remaining height */
+#mh-panel, #mh-cart{
+  display: flex;
+  flex-direction: column;
+}
+/* Prefer the panel body as host if it exists */
+#mh-panel .mh-panel-body.mhx-scale-host{ flex: 1 1 auto; min-height: 0; }
+</style>
+
+<script>
+// === v1.7.31 — Robust order toggle + content autoscale (fits 33vh) ===
+(function(){
+  function ready(fn){ if(document.readyState!=='loading'){ fn(); } else { document.addEventListener('DOMContentLoaded', fn); } }
+  function $(id){ return document.getElementById(id); }
+
+  // Toggle wiring for "點餐"（mh-fab）與購物車互斥
+  function wireToggles(){
+    const orderBtn = $('mh-fab');
+    const cartBtn  = $('mh-cart-fab');
+    const order    = $('mh-panel');
+    const cart     = $('mh-cart');
+    if(!orderBtn || !order || !cart) return;
+
+    // Avoid duplicate binding
+    orderBtn.dataset.mhxBound !== '1' && orderBtn.addEventListener('click', function(ev){
+      ev.preventDefault(); ev.stopPropagation();
+      const isOpen = order.classList.contains('open');
+      cart.classList.remove('open');
+      if(isOpen){
+        order.classList.remove('open');
+        orderBtn.setAttribute('aria-expanded','false');
+      }else{
+        order.classList.add('open');
+        orderBtn.setAttribute('aria-expanded','true');
+        // autoscale when opened
+        setTimeout(()=>{ mhxAutoscale(order); }, 0);
+      }
+    });
+    orderBtn.dataset.mhxBound = '1';
+
+    // When cart opens (by its own existing handler), close order & autoscale cart
+    const mo = new MutationObserver(()=>{
+      if(cart.classList.contains('open')){
+        order.classList.remove('open');
+        if(cartBtn) cartBtn.setAttribute('aria-expanded','true');
+        // autoscale when opened
+        setTimeout(()=>{ mhxAutoscale(cart); }, 0);
+      }
+    });
+    mo.observe(cart, {attributes:true, attributeFilter:['class']});
+
+    // Click outside / ESC 關閉
+    document.addEventListener('click', function(e){
+      const t = e.target;
+      const withinOrder = order.contains(t) || (orderBtn && orderBtn.contains(t));
+      const withinCart  = cart.contains(t)  || (cartBtn && cartBtn.contains(t));
+      if(!withinOrder) order.classList.remove('open');
+      if(!withinCart)  cart.classList.remove('open');
+    });
+    document.addEventListener('keydown', function(e){
+      if(e.key === 'Escape'){ order.classList.remove('open'); cart.classList.remove('open'); }
+    });
+  }
+
+  // Build scale host/wrap for a drawer element (cart or panel) and scale to fit
+  function mhxEnsureScale(el){
+    if(!el) return null;
+    // Prefer panel body as host if exists
+    let host = el.querySelector('.mh-panel-body') || el;
+    if(!host.classList.contains('mhx-scale-host')){
+      host.classList.add('mhx-scale-host');
+      // Create wrap and move children
+      const wrap = document.createElement('div');
+      wrap.className = 'mhx-scale-wrap';
+      // Move all children nodes into wrap
+      while(host.firstChild){
+        wrap.appendChild(host.firstChild);
+      }
+      host.appendChild(wrap);
+    }
+    return host.querySelector('.mhx-scale-wrap');
+  }
+
+  function mhxAutoscale(el){
+    const wrap = mhxEnsureScale(el);
+    if(!wrap) return;
+    const host = wrap.parentElement;
+
+    // Reset scale to measure natural size
+    wrap.style.transform = 'none';
+    wrap.style.width = 'auto';
+    wrap.style.height = 'auto';
+
+    // Defer to next frame to ensure layout is settled
+    requestAnimationFrame(()=>{
+      const W = host.clientWidth;
+      const H = host.clientHeight;
+      // natural content size
+      const contentW = wrap.scrollWidth;
+      const contentH = wrap.scrollHeight;
+      if(!W || !H || !contentW || !contentH) return;
+      // Fit both width & height (do not upscale above 1)
+      const s = Math.min(1, W / contentW, H / contentH);
+      wrap.style.transform = 'scale(' + s + ')';
+      // Keep wrap's width/height at natural to avoid reflow jitter
+      wrap.style.width = contentW + 'px';
+      wrap.style.height = contentH + 'px';
+    });
+  }
+
+  // Re-scale on resize/orientationchange/when drawers open
+  function attachResizers(){
+    const order = $('mh-panel');
+    const cart  = $('mh-cart');
+    const rescale = ()=>{
+      if(order && order.classList.contains('open')) mhxAutoscale(order);
+      if(cart  && cart.classList.contains('open'))  mhxAutoscale(cart);
+    };
+    window.addEventListener('resize', rescale, {passive:true});
+    window.addEventListener('orientationchange', rescale);
+  }
+
+  ready(function(){
+    wireToggles();
+    attachResizers();
+  });
+})();
+</script>
+
+
+<script>
+// === v1.7.32 — Force-rebind '點餐' toggle (clone button, manage aria, autoscale) ===
+(function(){
+  function ready(fn){ if(document.readyState!=='loading'){ fn(); } else { document.addEventListener('DOMContentLoaded', fn); } }
+  function $(id){ return document.getElementById(id); }
+
+  ready(function(){
+    const panel = $('mh-panel');
+    const cart  = $('mh-cart');
+    let   btn   = $('mh-fab'); // 點餐
+
+    if(!panel || !btn) return;
+
+    // Clone to remove any legacy listeners or event blockers
+    const cloned = btn.cloneNode(true);
+    if(btn.parentNode) btn.parentNode.replaceChild(cloned, btn);
+    btn = cloned;
+
+    // Basic ARIA
+    btn.setAttribute('role', 'button');
+    btn.setAttribute('aria-controls', 'mh-panel');
+    btn.setAttribute('aria-expanded', panel.classList.contains('open') ? 'true' : 'false');
+
+    // Helper funcs
+    function openPanel(){
+      if(cart) cart.classList.remove('open');
+      panel.classList.add('open');
+      panel.setAttribute('aria-hidden','false');
+      btn.setAttribute('aria-expanded','true');
+      // kick autoscale if available
+      try{ if(typeof mhxAutoscale==='function') mhxAutoscale(panel); }catch(e){}
+    }
+    function closePanel(){
+      panel.classList.remove('open');
+      panel.setAttribute('aria-hidden','true');
+      btn.setAttribute('aria-expanded','false');
+    }
+    function togglePanel(){
+      if(panel.classList.contains('open')) closePanel(); else openPanel();
+    }
+
+    // Click binding (strong)
+    btn.addEventListener('click', function(ev){
+      ev.preventDefault();
+      ev.stopPropagation();
+      ev.stopImmediatePropagation();
+      togglePanel();
+    });
+
+    // Keyboard support
+    btn.addEventListener('keydown', function(e){
+      if(e.key==='Enter' || e.key===' '){ e.preventDefault(); togglePanel(); }
+    });
+
+    // Close on outside click / ESC (reuse existing listeners still OK)
+    document.addEventListener('keydown', function(e){
+      if(e.key==='Escape') closePanel();
+    });
+    document.addEventListener('click', function(e){
+      const t = e.target;
+      if(!panel.contains(t) && !btn.contains(t)) closePanel();
+    }, true);
+  });
+})();
+</script>
+
+
+<script>
+// === v1.7.33 — Cart「編輯」可打開【點餐】抽屜（互斥 + 自適應縮放） ===
+(function(){
+  function ready(fn){ if(document.readyState!=='loading'){ fn(); } else { document.addEventListener('DOMContentLoaded', fn); } }
+  function $(id){ return document.getElementById(id); }
+
+  // Open the order panel explicitly (no toggle), close cart
+  function mhxForceOpenPanel(){
+    var panel = $('mh-panel');
+    var cart  = $('mh-cart');
+    var btn   = $('mh-fab');
+    if(cart) cart.classList.remove('open');
+    if(panel){
+      panel.classList.add('open');
+      panel.setAttribute('aria-hidden','false');
+    }
+    if(btn) btn.setAttribute('aria-expanded','true');
+    try{ if(typeof mhxAutoscale==='function') mhxAutoscale(panel); }catch(e){}
+  }
+
+  ready(function(){
+    var cart = $('mh-cart');
+    if(!cart) return;
+
+    // Delegate clicks inside cart to detect "編輯" actions and open the order panel
+    if(cart.dataset.mhxEditBound==='1') return;
+    cart.dataset.mhxEditBound = '1';
+
+    cart.addEventListener('click', function(e){
+      var t = e.target;
+      if(!t) return;
+      // Find nearest actionable element
+      var el = t.closest('button, a, [role="button"], .mh-edit, .edit');
+      if(!el) return;
+
+      var text = ((el.getAttribute('title')||'') + ' ' + (el.textContent||'')).toLowerCase();
+      var id   = (el.id||'').toLowerCase();
+      var cls  = (el.className||'').toLowerCase();
+      var da   = (el.getAttribute('data-action')||'').toLowerCase();
+
+      var looksEdit = da==='edit' || id.includes('edit') || cls.includes('edit') || text.includes('編輯') || text.includes('edit');
+      if(!looksEdit) return;
+
+      // Let any existing handlers run first (they may set up form values), then open the panel
+      setTimeout(mhxForceOpenPanel, 0);
+    }, true); // capture true to catch even when bubbling is stopped
   });
 })();
 </script>
