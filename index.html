@@ -3,7 +3,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>萌虎燒 | 雞蛋糕・甜點・下午茶 (v1.7.30)</title>
+  <title>萌虎燒 | 雞蛋糕・甜點・下午茶 (v1.7.32)</title>
   <meta name="description" content="萌虎燒是苗栗市的現點現做雞蛋糕專賣店，提供多種創意口味與飲品，支援外送與線上點餐。">
   <meta name="keywords" content="萌虎燒,雞蛋糕,苗栗雞蛋糕,甜點,下午茶,苗栗點心,萌虎燒菜單,萌虎燒訂購">
 
@@ -368,6 +368,23 @@
 <style>
 /* v1.7.30 — ensure 3px vertical rhythm inside .mh-panel-body */
 .mh-panel-body { row-gap: 3px !important; }
+</style>
+
+
+<style>
+/* v1.7.32 — Vertical spacing = 0.5px in both drawers (panel & cart) */
+.mh-panel-body { row-gap: 0.5px !important; } /* when body is grid on some views */
+
+/* Direct children (block layout fallback) */
+.mh-panel-body > .mh-field,
+.mh-panel-body > .mh-row-2,
+.mh-panel-body > .mh-row-3 { margin-bottom: 0.5px !important; }
+
+/* Only adjust vertical gaps inside grid rows; keep existing column gaps */
+.mh-row-2, .mh-row-3 { row-gap: 0.5px !important; }
+
+/* Cart list: reduce vertical distance between items only */
+.mh-cart-list { row-gap: 0.5px !important; }
 </style>
 
 </head>
