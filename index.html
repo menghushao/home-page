@@ -341,7 +341,7 @@
 
 
 <style>
-/* v1.7.20 — ensure drawers use menu width (not viewport) in fixed mode; keep box-sizing */
+/* v1.7.20 — 保證抽屜以框內寬度計算（避免外溢） */
 .mh-cart, .mh-panel{ box-sizing: border-box !important; }
 </style>
 
@@ -1080,27 +1080,37 @@
     const mr = menuRoot?.getBoundingClientRect();
     if (!mr) return;
 
+    // 讀取 #menu-root 的 padding 作為「菜單外框內側」的準繩
+    const cs = menuRoot ? getComputedStyle(menuRoot) : null;
+    const padL = cs ? parseFloat(cs.paddingLeft)  || 0 : 0;
+    const padR = cs ? parseFloat(cs.paddingRight) || 0 : 0;
+
+    // 以外框內側（含陰影但不跨出白色卡片邊界）為限制
+    const frameLeft  = Math.round(mr.left  + padL);
+    const frameRight = Math.round(mr.right - padR);
+
     const btnH = wrap.getBoundingClientRect().height || 44;
     const gutter = 12;
 
     if (needsFollow()){
-      // Switch to fixed mode
+      // 切換為 fixed 模式並緊貼菜單外框內側（不超出卡片）
       root.classList.add('fixed-drawer');
 
-      // Align buttons to menu's right-inside edge
       const wrapW = wrap.getBoundingClientRect().width;
-      let left = Math.round(mr.right - wrapW - gutter);
-      if (left < mr.left + gutter) left = mr.left + gutter;
+      let left = Math.round(frameRight - wrapW - gutter);
+      // 不要超過左邊內側
+      if (left < frameLeft + gutter) left = frameLeft + gutter;
+
+      wrap.style.position = 'fixed';
       wrap.style.left = left + 'px';
       wrap.style.right = 'auto';
       wrap.style.bottom = gutter + 'px';
       wrap.style.top = 'auto';
-      wrap.style.position = 'fixed';
 
-      // Drawers: width close to menu, slightly inset
-      const leftInset = Math.round(mr.left + gutter);
-      const rightInset = Math.round(window.innerWidth - mr.right + gutter);
+      const leftInset  = frameLeft  + gutter;
+      const rightInset = Math.max(gutter, Math.round(window.innerWidth - frameRight + gutter));
       const bottomBase = gutter + btnH + 8;
+
       [cartEl, panel].forEach((el)=>{
         if (!el) return;
         el.style.position = 'fixed';
@@ -1109,8 +1119,28 @@
         el.style.bottom= bottomBase + 'px';
         el.style.top   = 'auto';
         el.style.width = 'auto';
+        el.style.maxWidth = (frameRight - frameLeft - gutter*2) + 'px';  // 嚴格限制於外框內
+      });
+    } else {
+      // 桌面（無滾動）：維持在 #menu-root 內部，左右各留 12px 內縮
+      root.classList.remove('fixed-drawer');
+      wrap.style.position = 'absolute';
+      wrap.style.right = '12px';
+      wrap.style.left = 'auto';
+      wrap.style.bottom = '12px';
+      wrap.style.top = 'auto';
+
+      [cartEl, panel].forEach((el)=>{
+        if (!el) return;
+        el.style.position = 'absolute';
+        el.style.left = '12px';
+        el.style.right = '12px';
+        el.style.bottom = 'calc(12px + 44px + 8px)';
+        el.style.top = 'auto';
         el.style.maxWidth = 'none';
       });
+    }
+  });
     } else {
       // Desktop (no scroll): keep inside the menu as absolute
       root.classList.remove('fixed-drawer');
@@ -1135,59 +1165,6 @@
   requestAnimationFrame(()=>{ place(); });
   window.addEventListener('resize', place, {passive:true});
   window.addEventListener('scroll', place, {passive:true});
-})();
-</script>
-
-
-<script>
-// v1.7.20 — In fixed mode, clamp drawer width to menu width (no 'right' stretching).
-(function(){
-  function applyClamp(){
-    const menuRoot = document.getElementById('menu-root');
-    const cartEl   = document.getElementById('mh-cart');
-    const panel    = document.getElementById('mh-panel');
-    const wrap     = document.getElementById('mh-floating');
-    if (!menuRoot || !wrap) return;
-
-    const mr = menuRoot.getBoundingClientRect();
-    const gutter = 12;
-    const btnH = (wrap.getBoundingClientRect().height || 44);
-    const bottomBase = gutter + btnH + 8;
-
-    const inFixed = document.documentElement.classList.contains('fixed-drawer');
-    if (!inFixed) return; // Only clamp in fixed mode (mobile/tablet)
-
-    const contentWidth = Math.max(0, mr.width - 2*gutter);
-    const leftInset = Math.round(mr.left + gutter);
-
-    // Buttons: align to right-inside edge but do not exceed menu bounds
-    const wrapW = wrap.getBoundingClientRect().width;
-    let wrapLeft = Math.round(mr.right - wrapW - gutter);
-    if (wrapLeft < mr.left + gutter) wrapLeft = mr.left + gutter;
-    wrap.style.left = wrapLeft + 'px';
-    wrap.style.right = 'auto';
-    wrap.style.bottom = gutter + 'px';
-    wrap.style.top = 'auto';
-    wrap.style.position = 'fixed';
-
-    // Drawers: explicit width equals menu width minus gutters; avoid using 'right'
-    [cartEl, panel].forEach((el)=>{
-      if (!el) return;
-      el.style.position = 'fixed';
-      el.style.left  = leftInset + 'px';
-      el.style.right = 'auto';
-      el.style.bottom= bottomBase + 'px';
-      el.style.top   = 'auto';
-      el.style.width = contentWidth + 'px';
-      el.style.maxWidth = contentWidth + 'px';
-    });
-  }
-
-  // Hook into existing placement
-  window.addEventListener('resize', ()=>{ requestAnimationFrame(applyClamp); }, {passive:true});
-  window.addEventListener('scroll', ()=>{ requestAnimationFrame(applyClamp); }, {passive:true});
-  // Also run once after load
-  requestAnimationFrame(applyClamp);
 })();
 </script>
 
