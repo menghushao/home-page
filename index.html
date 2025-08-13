@@ -3,7 +3,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>萌虎燒 | 雞蛋糕・甜點・下午茶 (v1.7.16)</title>
+  <title>萌虎燒 | 雞蛋糕・甜點・下午茶 (v1.7.17)</title>
   <meta name="description" content="萌虎燒是苗栗市的現點現做雞蛋糕專賣店，提供多種創意口味與飲品，支援外送與線上點餐。">
   <meta name="keywords" content="萌虎燒,雞蛋糕,苗栗雞蛋糕,甜點,下午茶,苗栗點心,萌虎燒菜單,萌虎燒訂購">
 
@@ -237,8 +237,50 @@
 
 
 <style>
-/* v1.7.16: hide 商品B by default; show it with JS (display='block') when品項為『雞蛋糕』 */
+/* v1.7.17: hide 商品B by default; show it with JS (display='block') when品項為『雞蛋糕』 */
 #mh-b-wrap{ display: none; }
+</style>
+
+
+<style>
+/* v1.7.17 — Desktop narrow mode: place buttons inside the menu and float overlays within the menu */
+@media (min-width:1024px){
+  body.mh-desktop-narrow #menu-root{ position: relative; }
+  body.mh-desktop-narrow #mh-toolbar{
+    display:flex; gap:8px; align-items:center; position: sticky; top: 8px; z-index: 10005;
+    padding-bottom: 4px;
+  }
+  body.mh-desktop-narrow #mh-fab,
+  body.mh-desktop-narrow #mh-cart-fab{
+    position: static !important; right:auto !important; bottom:auto !important; left:auto !important; top:auto !important;
+    transform:none !important;
+    box-shadow: 0 2px 10px rgba(0,0,0,.08);
+  }
+  /* Overlays (cart & order panel) float INSIDE the menu box */
+  body.mh-desktop-narrow .mh-cart,
+  body.mh-desktop-narrow #mh-panel{
+    position: absolute !important;
+    left: 12.5% !important;             /* = 1/8 of menu width so the box is centered (75% wide) */
+    width: 75% !important;
+    top: 56px !important;               /* under the toolbar */
+    height: 20vh !important;            /* = 1/5 of the viewport height */
+    max-height: 20vh !important;
+    right:auto !important; bottom:auto !important;
+    overflow:auto !important;
+    z-index: 10004 !important;
+    transform:none !important;
+    box-shadow: 0 10px 24px rgba(0,0,0,.12);
+  }
+  body.mh-desktop-narrow .mh-cart.open,
+  body.mh-desktop-narrow #mh-panel.open{
+    opacity:1; visibility:visible; pointer-events:auto;
+  }
+  /* Make sure original fixed placements never override this mode */
+  body.mh-desktop-narrow .mh-fab,
+  body.mh-desktop-narrow .mh-cart{
+    position: absolute;
+  }
+}
 </style>
 
 </head>
@@ -829,5 +871,79 @@
 })();
 </script>
 
+
+
+<script>
+// v1.7.17 — Desktop narrow mode (<= not enough room to the right of menu) 
+(function(){
+  const menuRoot = document.getElementById('menu-root');
+  const orderFab = document.getElementById('mh-fab');
+  const cartFab  = document.getElementById('mh-cart-fab');
+  const cartEl   = document.getElementById('mh-cart');
+  const panel    = document.getElementById('mh-panel');
+  if (!menuRoot || !orderFab || !cartFab || !cartEl || !panel) return;
+
+  // placeholders to restore DOM when exiting narrow mode
+  const phOrderFab = document.createComment('mh-fab-ph');
+  const phCartFab  = document.createComment('mh-cart-fab-ph');
+  const phCart     = document.createComment('mh-cart-ph');
+  const phPanel    = document.createComment('mh-panel-ph');
+  orderFab.parentNode.insertBefore(phOrderFab, orderFab);
+  cartFab.parentNode.insertBefore(phCartFab, cartFab);
+  cartEl.parentNode.insertBefore(phCart, cartEl);
+  panel.parentNode.insertBefore(phPanel, panel);
+
+  let toolbar = null;
+  let inNarrow = false;
+
+  function needNarrow(){
+    // Desktop only
+    if (!window.matchMedia('(min-width:1024px)').matches) return false;
+    const r = menuRoot.getBoundingClientRect();
+    const spaceRight = window.innerWidth - r.right;
+    // require 420px width (panel) + 12px gap; if not enough, use narrow mode
+    return spaceRight < 432;
+  }
+
+  function enter(){
+    if (inNarrow) return;
+    inNarrow = true;
+    document.body.classList.add('mh-desktop-narrow');
+
+    // Make a toolbar area inside the menu box and move the two buttons into it
+    toolbar = document.createElement('div');
+    toolbar.id = 'mh-toolbar';
+    menuRoot.insertBefore(toolbar, menuRoot.firstChild);
+    toolbar.appendChild(orderFab);
+    toolbar.appendChild(cartFab);
+
+    // Move overlays into the menu so absolute positioning is relative to the menu
+    menuRoot.appendChild(cartEl);
+    menuRoot.appendChild(panel);
+  }
+
+  function exit(){
+    if (!inNarrow) return;
+    inNarrow = false;
+    document.body.classList.remove('mh-desktop-narrow');
+
+    // Move elements back to original positions
+    phOrderFab.parentNode.insertBefore(orderFab, phOrderFab);
+    phCartFab.parentNode.insertBefore(cartFab, phCartFab);
+    phCart.parentNode.insertBefore(cartEl, phCart);
+    phPanel.parentNode.insertBefore(panel, phPanel);
+
+    if (toolbar) { toolbar.remove(); toolbar = null; }
+  }
+
+  function apply(){
+    if (needNarrow()) enter(); else exit();
+  }
+
+  window.addEventListener('resize', apply);
+  window.addEventListener('load', apply);
+  document.addEventListener('DOMContentLoaded', apply);
+})();
+</script>
 
 </body></html>
