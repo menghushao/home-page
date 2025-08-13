@@ -3,7 +3,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>萌虎燒 | 雞蛋糕・甜點・下午茶 (v1.7.20)</title>
+  <title>萌虎燒 | 雞蛋糕・甜點・下午茶 (v1.7.21)</title>
   <meta name="description" content="萌虎燒是苗栗市的現點現做雞蛋糕專賣店，提供多種創意口味與飲品，支援外送與線上點餐。">
   <meta name="keywords" content="萌虎燒,雞蛋糕,苗栗雞蛋糕,甜點,下午茶,苗栗點心,萌虎燒菜單,萌虎燒訂購">
 
@@ -1071,6 +1071,66 @@
     setTimeout(updateFloatMode, 150);
     window.addEventListener('resize', updateFloatMode);
     window.addEventListener('orientationchange', updateFloatMode);
+  });
+})();
+</script>
+
+
+<style>
+/* === v1.7.21 — Tablet-focused side-float & layout hardening === */
+.mh-cart, .mh-panel{
+  box-sizing: border-box !important;
+  display: flex !important;
+  flex-direction: column !important;
+  contain: layout paint style !important; /* isolate so不影響外層 */
+}
+.mh-panel-header, .mh-panel-actions{ flex: 0 0 auto; }
+.mh-panel-body{ flex: 1 1 auto !important; min-height: 0 !important; overflow: hidden !important; }
+.mh-cart *,.mh-panel *{ max-width: 100% !important; }
+
+/* Side-float overlay sizing tweaks */
+.mh-side-float .mh-cart, .mh-side-float .mh-panel{
+  width: min(480px, 94vw) !important; /* 稍寬，兼容平板 */
+  height: clamp(240px, 33vh, 520px) !important; /* 下限避免太矮 */
+}
+
+/* 保證抽屜開啟時不會推擠到頁面 */
+.mh-side-float body, .mh-side-float #menu-root{ overflow: visible !important; }
+</style>
+
+<script>
+// === v1.7.21 — Stronger side-float heuristics for tablets & overflow-safe ===
+(function(){
+  function ready(fn){ if(document.readyState!=='loading'){ fn(); } else { document.addEventListener('DOMContentLoaded', fn); } }
+  function updateFloatMode(){
+    var html = document.documentElement;
+    var menu = document.getElementById('menu-root');
+    if(!menu){ html.classList.remove('mh-side-float'); return; }
+
+    var r = menu.getBoundingClientRect();
+    var vw = window.innerWidth  || document.documentElement.clientWidth;
+    var vh = window.innerHeight || document.documentElement.clientHeight;
+
+    // Overflow checks: if menu bottom is near/under viewport bottom or menu is very tall, float.
+    var nearBottom = (r.bottom > (vh - 24));
+    var tooTall    = (r.height > vh * 0.80);
+
+    // Tablet-oriented thresholds (more aggressive than before)
+    var tabletishW = vw <= 1440;   // includes大多數平板 / 小筆電
+    var tabletishH = vh <= 900;
+    var menuNarrow = r.width <= 900;
+    var crampedR   = (vw - r.right) < 48;
+
+    var shouldFloat = tabletishW || tabletishH || menuNarrow || crampedR || nearBottom || tooTall;
+    html.classList.toggle('mh-side-float', !!shouldFloat);
+  }
+
+  ready(function(){
+    updateFloatMode();
+    setTimeout(updateFloatMode, 150);
+    window.addEventListener('resize', updateFloatMode, {passive:true});
+    window.addEventListener('orientationchange', updateFloatMode);
+    window.addEventListener('scroll', updateFloatMode, {passive:true});
   });
 })();
 </script>
