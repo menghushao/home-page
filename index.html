@@ -3,7 +3,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>萌虎燒 | 雞蛋糕・甜點・下午茶 (v1.7.18)</title>
+  <title>萌虎燒 | 雞蛋糕・甜點・下午茶 (v1.7.19)</title>
   <meta name="description" content="萌虎燒是苗栗市的現點現做雞蛋糕專賣店，提供多種創意口味與飲品，支援外送與線上點餐。">
   <meta name="keywords" content="萌虎燒,雞蛋糕,苗栗雞蛋糕,甜點,下午茶,苗栗點心,萌虎燒菜單,萌虎燒訂購">
 
@@ -303,6 +303,40 @@
 #mh-floating{ z-index: 10050 !important; pointer-events: auto !important; }
 #mh-floating .mh-fab, #mh-floating #mh-cart-fab{ pointer-events: auto !important; }
 .mh-cart, .mh-panel{ z-index: 10040 !important; } /* below buttons but above content */
+</style>
+
+
+<style>
+/* v1.7.19 — mobile follow-scroll + fix button text wrapping */
+#mh-floating{
+  /* default (desktop) stays absolute; JS will flip to fixed on small screens */
+  display: inline-flex !important;
+  gap: 8px !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  width: auto !important;
+  max-width: none !important;
+}
+#mh-floating .mh-fab, #mh-floating #mh-cart-fab{
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 44px !important;
+  padding: 8px 12px !important;
+  white-space: nowrap !important;    /* avoid Chinese character wrapping like "購物
+車" */
+  line-height: 1 !important;
+  min-width: fit-content !important;
+}
+
+/* drawers default styles remain from previous versions; add a shell class for fixed mode alignment */
+.mh-cart, .mh-panel{
+  will-change: left, right, bottom, width, transform;
+}
+
+/* Utilities toggled by JS */
+:root.fixed-drawer #mh-floating{ position: fixed !important; }
+:root.fixed-drawer .mh-cart, :root.fixed-drawer .mh-panel{ position: fixed !important; }
 </style>
 
 </head>
@@ -984,6 +1018,117 @@
 
   cartFab?.addEventListener('click', (ev)=>{ ev.preventDefault(); ev.stopImmediatePropagation(); ev.stopPropagation(); toggle(cartEl); }, true);
   cartClose?.addEventListener('click', (ev)=>{ ev.preventDefault(); ev.stopImmediatePropagation(); ev.stopPropagation(); hide(cartEl); }, true);
+})();
+</script>
+
+
+<script>
+// v1.7.19 — make buttons & drawers follow scroll on small screens by switching to fixed and aligning to menu's right edge
+(function(){
+  const $ = (id)=>document.getElementById(id);
+  const menuRoot = $('menu-root');
+  const wrap     = $('mh-floating') || (function(){ const d=document.createElement('div'); d.id='mh-floating'; return d; })();
+  const orderFab = $('mh-fab');
+  const cartFab  = $('mh-cart-fab');
+  const cartEl   = $('mh-cart');
+  const panel    = $('mh-panel');
+  const cartClose= $('mh-cart-close');
+  const panelClose= $('mh-close');
+
+  // Ensure structure
+  if (menuRoot){
+    if (!wrap.parentElement) menuRoot.appendChild(wrap);
+    if (orderFab && orderFab.parentElement !== wrap) wrap.appendChild(orderFab);
+    if (cartFab  && cartFab.parentElement !== wrap)  wrap.appendChild(cartFab);
+    if (cartEl   && cartEl.parentElement  !== menuRoot) menuRoot.appendChild(cartEl);
+    if (panel    && panel.parentElement   !== menuRoot) menuRoot.appendChild(panel);
+  }
+
+  // Helpers
+  const root = document.documentElement;
+  function isOpen(el){ return el?.classList.contains('open'); }
+  function show(el){ if(!el) return; el.classList.add('open'); el.setAttribute('aria-hidden','false'); }
+  function hide(el){ if(!el) return; el.classList.remove('open'); el.setAttribute('aria-hidden','true'); }
+  function toggle(el){ if(!el) return; (isOpen(el)?hide:show)(el); }
+
+  // Clicks (capture-phase) to guarantee toggling
+  orderFab?.addEventListener('click', (ev)=>{ ev.preventDefault(); ev.stopImmediatePropagation(); ev.stopPropagation(); toggle(panel); }, true);
+  panelClose?.addEventListener('click', (ev)=>{ ev.preventDefault(); ev.stopImmediatePropagation(); ev.stopPropagation(); hide(panel); }, true);
+  cartFab?.addEventListener('click', (ev)=>{ ev.preventDefault(); ev.stopImmediatePropagation(); ev.stopPropagation(); toggle(cartEl); }, true);
+  cartClose?.addEventListener('click', (ev)=>{ ev.preventDefault(); ev.stopImmediatePropagation(); ev.stopPropagation(); hide(cartEl); }, true);
+
+  // Layout: on small screens / scrollable contexts, use fixed + align to menu's right edge
+  function needsFollow(){
+    // If content taller than viewport, we consider it a scrolling (mobile-like) context
+    const doc = document.documentElement;
+    const scrolly = (doc.scrollHeight - window.innerHeight) > 8;
+    // Or if menu taller than viewport
+    const mr = menuRoot?.getBoundingClientRect();
+    const menuTooTall = !!mr && (mr.height - window.innerHeight) > 8;
+    // Or if viewport width is small
+    const vwSmall = window.matchMedia('(max-width: 1024px)').matches;
+    return scrolly || menuTooTall || vwSmall;
+  }
+
+  function place(){
+    const mr = menuRoot?.getBoundingClientRect();
+    if (!mr) return;
+
+    const btnH = wrap.getBoundingClientRect().height || 44;
+    const gutter = 12;
+
+    if (needsFollow()){
+      // Switch to fixed mode
+      root.classList.add('fixed-drawer');
+
+      // Align buttons to menu's right-inside edge
+      const wrapW = wrap.getBoundingClientRect().width;
+      let left = Math.round(mr.right - wrapW - gutter);
+      if (left < mr.left + gutter) left = mr.left + gutter;
+      wrap.style.left = left + 'px';
+      wrap.style.right = 'auto';
+      wrap.style.bottom = gutter + 'px';
+      wrap.style.top = 'auto';
+      wrap.style.position = 'fixed';
+
+      // Drawers: width close to menu, slightly inset
+      const leftInset = Math.round(mr.left + gutter);
+      const rightInset = Math.round(window.innerWidth - mr.right + gutter);
+      const bottomBase = gutter + btnH + 8;
+      [cartEl, panel].forEach((el)=>{
+        if (!el) return;
+        el.style.position = 'fixed';
+        el.style.left  = leftInset + 'px';
+        el.style.right = rightInset + 'px';
+        el.style.bottom= bottomBase + 'px';
+        el.style.top   = 'auto';
+        el.style.width = 'auto';
+        el.style.maxWidth = 'none';
+      });
+    } else {
+      // Desktop (no scroll): keep inside the menu as absolute
+      root.classList.remove('fixed-drawer');
+      wrap.style.position = 'absolute';
+      wrap.style.right = '12px';
+      wrap.style.left = 'auto';
+      wrap.style.bottom = '12px';
+      wrap.style.top = 'auto';
+
+      [cartEl, panel].forEach((el)=>{
+        if (!el) return;
+        el.style.position = 'absolute';
+        el.style.left = '12px';
+        el.style.right = '12px';
+        el.style.bottom = 'calc(12px + 44px + 8px)';
+        el.style.top = 'auto';
+      });
+    }
+  }
+
+  // Initial placement after current frame to let layout settle
+  requestAnimationFrame(()=>{ place(); });
+  window.addEventListener('resize', place, {passive:true});
+  window.addEventListener('scroll', place, {passive:true});
 })();
 </script>
 
