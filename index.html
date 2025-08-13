@@ -3,7 +3,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>萌虎燒 | 雞蛋糕・甜點・下午茶 (v1.7.19)</title>
+  <title>萌虎燒 | 雞蛋糕・甜點・下午茶 (v1.7.20)</title>
   <meta name="description" content="萌虎燒是苗栗市的現點現做雞蛋糕專賣店，提供多種創意口味與飲品，支援外送與線上點餐。">
   <meta name="keywords" content="萌虎燒,雞蛋糕,苗栗雞蛋糕,甜點,下午茶,苗栗點心,萌虎燒菜單,萌虎燒訂購">
 
@@ -1018,6 +1018,59 @@
       if((e.key==='Enter' || e.key===' ') && document.activeElement === orderBtn){ e.preventDefault(); toggleOrder(); }
       if((e.key==='Enter' || e.key===' ') && document.activeElement === cartBtn){ e.preventDefault(); toggleCart();  }
     });
+  });
+})();
+</script>
+
+
+<style>
+/* === v1.7.20 — Side-float mode for small/packed screens === */
+/* When .mh-side-float is on <html>, both FABs and drawers float at viewport right */
+.mh-side-float .mh-fabs-wrap{
+  position: fixed !important;
+  right: 12px !important; bottom: 12px !important;
+  z-index: 10020 !important;
+}
+.mh-side-float .mh-cart, .mh-side-float .mh-panel{
+  position: fixed !important;
+  left: auto !important; right: 12px !important;
+  top: auto !important; bottom: 64px !important;
+  width: min(420px, 92vw) !important;
+  height: 33vh !important; max-height: 33vh !important;
+  transform: none !important;
+  overflow: hidden !important;
+  border-radius: 12px !important;
+  z-index: 10015 !important;
+}
+/* Avoid layout jump: ensure inside-menu absolute rules don't fight in side-float */
+.mh-side-float #menu-root { overflow: visible !important; }
+</style>
+
+<script>
+// === v1.7.20 — Auto switch to side-float on narrow/short screens ===
+(function(){
+  function ready(fn){ if(document.readyState!=='loading'){ fn(); } else { document.addEventListener('DOMContentLoaded', fn); } }
+  function updateFloatMode(){
+    var html = document.documentElement;
+    var menu = document.getElementById('menu-root');
+    if(!menu){ html.classList.remove('mh-side-float'); return; }
+
+    var r = menu.getBoundingClientRect();
+    var vw = window.innerWidth || document.documentElement.clientWidth;
+    var vh = window.innerHeight || document.documentElement.clientHeight;
+
+    // Heuristics: if viewport is narrow/short OR menu is narrow OR too near right edge, go side-float.
+    var shouldFloat = (vw < 1200) || (vh < 700) || (r.width < 700) || ((vw - r.right) < 24);
+
+    html.classList.toggle('mh-side-float', !!shouldFloat);
+  }
+
+  ready(function(){
+    // Initial evaluation + a delayed pass (for fonts/layout settling)
+    updateFloatMode();
+    setTimeout(updateFloatMode, 150);
+    window.addEventListener('resize', updateFloatMode);
+    window.addEventListener('orientationchange', updateFloatMode);
   });
 })();
 </script>
