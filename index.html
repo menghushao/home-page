@@ -3,7 +3,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>萌虎燒 | 雞蛋糕・甜點・下午茶 (v1.7.18)</title>
+  <title>萌虎燒 | 雞蛋糕・甜點・下午茶 (v1.7.19)</title>
   <meta name="description" content="萌虎燒是苗栗市的現點現做雞蛋糕專賣店，提供多種創意口味與飲品，支援外送與線上點餐。">
   <meta name="keywords" content="萌虎燒,雞蛋糕,苗栗雞蛋糕,甜點,下午茶,苗栗點心,萌虎燒菜單,萌虎燒訂購">
 
@@ -237,50 +237,8 @@
 
 
 <style>
-/* v1.7.18: hide 商品B by default; show it with JS (display='block') when品項為『雞蛋糕』 */
+/* v1.7.16: hide 商品B by default; show it with JS (display='block') when品項為『雞蛋糕』 */
 #mh-b-wrap{ display: none; }
-</style>
-
-
-<style>
-/* v1.7.18 — Desktop narrow mode: place buttons inside the menu and float overlays within the menu */
-@media (min-width:1024px){
-  body.mh-desktop-narrow #menu-root{ position: relative; }
-  body.mh-desktop-narrow #mh-toolbar{
-    display:flex; gap:8px; align-items:center; position: sticky; top: 8px; z-index: 10005;
-    padding-bottom: 4px;
-  }
-  body.mh-desktop-narrow #mh-fab,
-  body.mh-desktop-narrow #mh-cart-fab{
-    position: static !important; right:auto !important; bottom:auto !important; left:auto !important; top:auto !important;
-    transform:none !important;
-    box-shadow: 0 2px 10px rgba(0,0,0,.08);
-  }
-  /* Overlays (cart & order panel) float INSIDE the menu box */
-  body.mh-desktop-narrow .mh-cart,
-  body.mh-desktop-narrow #mh-panel{
-    position: absolute !important;
-    left: 12.5% !important;             /* = 1/8 of menu width so the box is centered (75% wide) */
-    width: 75% !important;
-    top: 56px !important;               /* under the toolbar */
-    height: 20vh !important;            /* = 1/5 of the viewport height */
-    max-height: 20vh !important;
-    right:auto !important; bottom:auto !important;
-    overflow:auto !important;
-    z-index: 10004 !important;
-    transform:none !important;
-    box-shadow: 0 10px 24px rgba(0,0,0,.12);
-  }
-  body.mh-desktop-narrow .mh-cart.open,
-  body.mh-desktop-narrow #mh-panel.open{
-    opacity:1; visibility:visible; pointer-events:auto;
-  }
-  /* Make sure original fixed placements never override this mode */
-  body.mh-desktop-narrow .mh-fab,
-  body.mh-desktop-narrow .mh-cart{
-    position: absolute;
-  }
-}
 </style>
 
 </head>
@@ -873,76 +831,194 @@
 
 
 
+<style>
+/* === v1.7.17 — Inside-menu FABs and drawers (all screens) === */
+#menu-root{ position: relative !important; }
+
+/* Floating buttons container inside menu bottom-right */
+.mh-fabs-wrap{
+  position: absolute; right: 12px; bottom: 12px;
+  display: flex; gap: 8px; z-index: 10010;
+}
+/* Buttons live inside the wrap; cancel fixed positioning */
+.mh-fabs-wrap .mh-fab,
+.mh-fabs-wrap #mh-cart-fab{
+  position: static !important;
+  left: auto !important; top: auto !important; right: auto !important; bottom: auto !important;
+  transform: none !important;
+}
+
+/* Drawers (點餐面板 + 購物車) sit inside the menu box near full width, 1/3 viewport tall, no scroll */
+.mh-cart, .mh-panel{
+  position: absolute !important;
+  left: 12px !important; right: 12px !important;
+  bottom: 64px !important;   /* leave space above the FABs */
+  width: auto !important;
+  height: 33vh !important; max-height: 33vh !important;
+  transform: none !important;
+  overflow: hidden !important;   /* no internal scrollbars */
+  border-radius: 12px !important;
+  z-index: 10005;
+}
+
+/* Ensure visibility toggles still work without transforms */
+.mh-cart{ opacity: 0; visibility: hidden; pointer-events: none; }
+.mh-cart.open{ opacity: 1; visibility: visible; pointer-events: auto; }
+.mh-panel{ opacity: 0; visibility: hidden; pointer-events: none; }
+.mh-panel.open{ opacity: 1; visibility: visible; pointer-events: auto; }
+
+/* Panel internals: no extra scroll areas */
+.mh-panel-body{ overflow: hidden !important; }
+.mh-cart .mh-panel-actions{ position: static !important; }
+
+/* Neutralize mobile/Desktop special-casing from older rules */
+@media (max-width: 1023.98px){
+  .mh-panel{ left:12px !important; right:12px !important; top:auto !important; bottom:64px !important; }
+  .mh-cart{ left:12px !important; right:12px !important; top:auto !important; bottom:64px !important; }
+}
+@media (min-width: 1024px){
+  .mh-panel{ left:12px !important; right:12px !important; top:auto !important; bottom:64px !important; }
+  .mh-cart{ left:12px !important; right:12px !important; top:auto !important; bottom:64px !important; }
+}
+</style>
+
 <script>
-// v1.7.18 — Desktop narrow mode (<= not enough room to the right of menu) 
+// === v1.7.17 — Move buttons & drawers inside menu; align as requested ===
 (function(){
-  const menuRoot = document.getElementById('menu-root');
-  const orderFab = document.getElementById('mh-fab');
-  const cartFab  = document.getElementById('mh-cart-fab');
-  const cartEl   = document.getElementById('mh-cart');
+  const menu = document.getElementById('menu-root');
+  if(!menu) return;
+
+  const orderBtn = document.getElementById('mh-fab');
+  const cartBtn  = document.getElementById('mh-cart-fab');
+  const cart     = document.getElementById('mh-cart');
   const panel    = document.getElementById('mh-panel');
-  if (!menuRoot || !orderFab || !cartFab || !cartEl || !panel) return;
 
-  // placeholders to restore DOM when exiting narrow mode
-  const phOrderFab = document.createComment('mh-fab-ph');
-  const phCartFab  = document.createComment('mh-cart-fab-ph');
-  const phCart     = document.createComment('mh-cart-ph');
-  const phPanel    = document.createComment('mh-panel-ph');
-  orderFab.parentNode.insertBefore(phOrderFab, orderFab);
-  cartFab.parentNode.insertBefore(phCartFab, cartFab);
-  cartEl.parentNode.insertBefore(phCart, cartEl);
-  panel.parentNode.insertBefore(phPanel, panel);
+  // Create a bottom-right wrap for the two buttons (order left, cart right)
+  const wrap = document.createElement('div');
+  wrap.className = 'mh-fabs-wrap';
+  if(orderBtn) wrap.appendChild(orderBtn);
+  if(cartBtn) wrap.appendChild(cartBtn);
+  menu.appendChild(wrap);
 
-  let toolbar = null;
-  let inNarrow = false;
+  // Move drawers inside the menu so they overlay within the border
+  if(cart) menu.appendChild(cart);
+  if(panel) menu.appendChild(panel);
 
-  function needNarrow(){
-    // Desktop only
-    if (!window.matchMedia('(min-width:1024px)').matches) return false;
-    const r = menuRoot.getBoundingClientRect();
-    const spaceRight = window.innerWidth - r.right;
-    // require 420px width (panel) + 12px gap; if not enough, use narrow mode
-    return spaceRight < 432;
+  // Clear inline positioning that legacy scripts might set
+  function clearInline(el){
+    if(!el) return;
+    el.style.left=''; el.style.top=''; el.style.right=''; el.style.bottom='';
+    el.style.position=''; el.style.transform='';
   }
+  [orderBtn, cartBtn, cart, panel].forEach(clearInline);
 
-  function enter(){
-    if (inNarrow) return;
-    inNarrow = true;
-    document.body.classList.add('mh-desktop-narrow');
+  // Keep them aligned on resize/scroll without recomputing coords (CSS handles it)
+  window.addEventListener('resize', function(){ [orderBtn, cartBtn, cart, panel].forEach(clearInline); });
+  window.addEventListener('scroll', function(){ [orderBtn, cartBtn, cart, panel].forEach(clearInline); });
+})();
+</script>
 
-    // Make a toolbar area inside the menu box and move the two buttons into it
-    toolbar = document.createElement('div');
-    toolbar.id = 'mh-toolbar';
-    menuRoot.insertBefore(toolbar, menuRoot.firstChild);
-    toolbar.appendChild(orderFab);
-    toolbar.appendChild(cartFab);
 
-    // Move overlays into the menu so absolute positioning is relative to the menu
-    menuRoot.appendChild(cartEl);
-    menuRoot.appendChild(panel);
-  }
+<script>
+// === v1.7.19 — Robust toggles (clone to remove old listeners, wire both buttons) ===
+(function(){
+  function ready(fn){ if(document.readyState!=='loading'){ fn(); } else { document.addEventListener('DOMContentLoaded', fn); } }
+  ready(function(){
+    const menu = document.getElementById('menu-root');
+    if(!menu) return;
 
-  function exit(){
-    if (!inNarrow) return;
-    inNarrow = false;
-    document.body.classList.remove('mh-desktop-narrow');
+    // Elements (re-resolve after clone)
+    function $(id){ return document.getElementById(id); }
+    let orderBtn = $('mh-fab');
+    let cartBtn  = $('mh-cart-fab');
+    let order    = $('mh-panel');
+    let cart     = $('mh-cart');
 
-    // Move elements back to original positions
-    phOrderFab.parentNode.insertBefore(orderFab, phOrderFab);
-    phCartFab.parentNode.insertBefore(cartFab, phCartFab);
-    phCart.parentNode.insertBefore(cartEl, phCart);
-    phPanel.parentNode.insertBefore(panel, phPanel);
+    if(!orderBtn || !cartBtn || !order || !cart) return;
 
-    if (toolbar) { toolbar.remove(); toolbar = null; }
-  }
+    // Ensure drawers live inside menu and buttons sit in the inside-bottom-right wrap
+    let wrap = menu.querySelector('.mh-fabs-wrap');
+    if(!wrap){
+      wrap = document.createElement('div');
+      wrap.className = 'mh-fabs-wrap';
+      menu.appendChild(wrap);
+    }
+    if(orderBtn.parentNode !== wrap) wrap.appendChild(orderBtn);
+    if(cartBtn.parentNode  !== wrap) wrap.appendChild(cartBtn);
+    if(order.parentNode !== menu) menu.appendChild(order);
+    if(cart.parentNode  !== menu) menu.appendChild(cart);
 
-  function apply(){
-    if (needNarrow()) enter(); else exit();
-  }
+    // Helper: replace node with clone to drop legacy listeners
+    function stripListeners(btnId){
+      const oldBtn = $(btnId);
+      if(!oldBtn) return null;
+      const newBtn = oldBtn.cloneNode(true);
+      oldBtn.parentNode.replaceChild(newBtn, oldBtn);
+      return newBtn;
+    }
 
-  window.addEventListener('resize', apply);
-  window.addEventListener('load', apply);
-  document.addEventListener('DOMContentLoaded', apply);
+    orderBtn = stripListeners('mh-fab') || orderBtn;
+    cartBtn  = stripListeners('mh-cart-fab') || cartBtn;
+
+    // ARIA baseline
+    orderBtn.setAttribute('aria-controls','mh-panel');
+    cartBtn.setAttribute('aria-controls','mh-cart');
+    orderBtn.setAttribute('role','button');
+    cartBtn.setAttribute('role','button');
+    orderBtn.tabIndex = orderBtn.tabIndex || 0;
+    cartBtn.tabIndex  = cartBtn.tabIndex || 0;
+
+    // Open/close helpers (mutually exclusive)
+    function openOrder(){
+      cart.classList.remove('open');
+      order.classList.add('open');
+      orderBtn.setAttribute('aria-expanded','true');
+      cartBtn.setAttribute('aria-expanded','false');
+    }
+    function closeOrder(){
+      order.classList.remove('open');
+      orderBtn.setAttribute('aria-expanded','false');
+    }
+    function toggleOrder(){
+      if(order.classList.contains('open')) closeOrder();
+      else openOrder();
+    }
+
+    function openCart(){
+      order.classList.remove('open');
+      cart.classList.add('open');
+      cartBtn.setAttribute('aria-expanded','true');
+      orderBtn.setAttribute('aria-expanded','false');
+    }
+    function closeCart(){
+      cart.classList.remove('open');
+      cartBtn.setAttribute('aria-expanded','false');
+    }
+    function toggleCart(){
+      if(cart.classList.contains('open')) closeCart();
+      else openCart();
+    }
+
+    // Wire click handlers
+    orderBtn.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); toggleOrder(); });
+    cartBtn.addEventListener('click',  function(e){ e.preventDefault(); e.stopPropagation(); toggleCart();  });
+
+    // Close when clicking outside drawers & buttons
+    document.addEventListener('click', function(e){
+      const t = e.target;
+      const withinOrder = order.contains(t) || orderBtn.contains(t);
+      const withinCart  = cart.contains(t)  || cartBtn.contains(t);
+      if(!withinOrder) closeOrder();
+      if(!withinCart)  closeCart();
+    });
+
+    // ESC to close both
+    document.addEventListener('keydown', function(e){
+      if(e.key === 'Escape'){ closeOrder(); closeCart(); }
+      if((e.key==='Enter' || e.key===' ') && document.activeElement === orderBtn){ e.preventDefault(); toggleOrder(); }
+      if((e.key==='Enter' || e.key===' ') && document.activeElement === cartBtn){ e.preventDefault(); toggleCart();  }
+    });
+  });
 })();
 </script>
 
