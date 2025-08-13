@@ -3,7 +3,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>萌虎燒 | 雞蛋糕・甜點・下午茶 (v1.7.20)</title>
+  <title>萌虎燒 | 雞蛋糕・甜點・下午茶 (v1.7.26)</title>
   <meta name="description" content="萌虎燒是苗栗市的現點現做雞蛋糕專賣店，提供多種創意口味與飲品，支援外送與線上點餐。">
   <meta name="keywords" content="萌虎燒,雞蛋糕,苗栗雞蛋糕,甜點,下午茶,苗栗點心,萌虎燒菜單,萌虎燒訂購">
 
@@ -341,8 +341,8 @@
 
 
 <style>
-/* v1.7.20 — 保證抽屜以框內寬度計算（避免外溢） */
-.mh-cart, .mh-panel{ box-sizing: border-box !important; }
+/* v1.7.26 — safety: border-box so borders/padding don't push width */
+.mh-cart, .mh-panel { box-sizing: border-box !important; }
 </style>
 
 </head>
@@ -1080,37 +1080,27 @@
     const mr = menuRoot?.getBoundingClientRect();
     if (!mr) return;
 
-    // 讀取 #menu-root 的 padding 作為「菜單外框內側」的準繩
-    const cs = menuRoot ? getComputedStyle(menuRoot) : null;
-    const padL = cs ? parseFloat(cs.paddingLeft)  || 0 : 0;
-    const padR = cs ? parseFloat(cs.paddingRight) || 0 : 0;
-
-    // 以外框內側（含陰影但不跨出白色卡片邊界）為限制
-    const frameLeft  = Math.round(mr.left  + padL);
-    const frameRight = Math.round(mr.right - padR);
-
     const btnH = wrap.getBoundingClientRect().height || 44;
     const gutter = 12;
 
     if (needsFollow()){
-      // 切換為 fixed 模式並緊貼菜單外框內側（不超出卡片）
+      // Switch to fixed mode
       root.classList.add('fixed-drawer');
 
+      // Align buttons to menu's right-inside edge
       const wrapW = wrap.getBoundingClientRect().width;
-      let left = Math.round(frameRight - wrapW - gutter);
-      // 不要超過左邊內側
-      if (left < frameLeft + gutter) left = frameLeft + gutter;
-
-      wrap.style.position = 'fixed';
+      let left = Math.round(mr.right - wrapW - gutter);
+      if (left < mr.left + gutter) left = mr.left + gutter;
       wrap.style.left = left + 'px';
       wrap.style.right = 'auto';
       wrap.style.bottom = gutter + 'px';
       wrap.style.top = 'auto';
+      wrap.style.position = 'fixed';
 
-      const leftInset  = frameLeft  + gutter;
-      const rightInset = Math.max(gutter, Math.round(window.innerWidth - frameRight + gutter));
+      // Drawers: width close to menu, slightly inset
+      const leftInset = Math.round(mr.left + gutter);
+      const rightInset = Math.round(window.innerWidth - mr.right + gutter);
       const bottomBase = gutter + btnH + 8;
-
       [cartEl, panel].forEach((el)=>{
         if (!el) return;
         el.style.position = 'fixed';
@@ -1119,28 +1109,8 @@
         el.style.bottom= bottomBase + 'px';
         el.style.top   = 'auto';
         el.style.width = 'auto';
-        el.style.maxWidth = (frameRight - frameLeft - gutter*2) + 'px';  // 嚴格限制於外框內
-      });
-    } else {
-      // 桌面（無滾動）：維持在 #menu-root 內部，左右各留 12px 內縮
-      root.classList.remove('fixed-drawer');
-      wrap.style.position = 'absolute';
-      wrap.style.right = '12px';
-      wrap.style.left = 'auto';
-      wrap.style.bottom = '12px';
-      wrap.style.top = 'auto';
-
-      [cartEl, panel].forEach((el)=>{
-        if (!el) return;
-        el.style.position = 'absolute';
-        el.style.left = '12px';
-        el.style.right = '12px';
-        el.style.bottom = 'calc(12px + 44px + 8px)';
-        el.style.top = 'auto';
         el.style.maxWidth = 'none';
       });
-    }
-  });
     } else {
       // Desktop (no scroll): keep inside the menu as absolute
       root.classList.remove('fixed-drawer');
@@ -1165,6 +1135,82 @@
   requestAnimationFrame(()=>{ place(); });
   window.addEventListener('resize', place, {passive:true});
   window.addEventListener('scroll', place, {passive:true});
+})();
+</script>
+
+
+<script>
+// v1.7.26 — Non-invasive clamp of drawers to #menu-root inner frame on any screen.
+(function(){
+  const menuRoot = document.querySelector('#menu-root');
+  if (!menuRoot) return;
+
+  const $ = (sel) => document.querySelector(sel);
+  const cartEl = $('.mh-cart');
+  const panel  = $('.mh-panel');
+
+  const GUTTER = 12;
+
+  function frameBox(){
+    const mr = menuRoot.getBoundingClientRect();
+    const cs = getComputedStyle(menuRoot);
+    const padL = parseFloat(cs.paddingLeft)  || 0;
+    const padR = parseFloat(cs.paddingRight) || 0;
+    const left  = Math.round(mr.left  + padL);
+    const right = Math.round(mr.right - padR);
+    const width = Math.max(0, right - left - GUTTER*2 - 1); // -1px 防止邊界取整外溢
+    return {left, right, width};
+  }
+
+  function clamp(el){
+    if (!el) return;
+    const st = getComputedStyle(el);
+    if (st.position !== 'fixed') return; // 只在浮動狀態才鉗制寬度
+    const fb = frameBox();
+    const left = fb.left + GUTTER;
+    const w    = fb.width;
+
+    // 以 left + 固定寬度 的方式，確保不受 right/min-width 影響
+    el.style.setProperty('left', left + 'px', 'important');
+    el.style.setProperty('right', 'auto', 'important');
+    el.style.setProperty('width', w + 'px', 'important');
+    el.style.setProperty('max-width', w + 'px', 'important');
+    el.style.setProperty('min-width', '0px', 'important');
+    el.style.setProperty('margin-left', '0px', 'important');
+    el.style.setProperty('margin-right', '0px', 'important');
+    el.style.setProperty('box-sizing', 'border-box', 'important');
+  }
+
+  function run(){
+    clamp(cartEl);
+    clamp(panel);
+  }
+
+  // Try to wrap the original place(), if present in global scope
+  if (typeof window.place === 'function'){
+    const orig = window.place;
+    window.place = function(){
+      const r = orig.apply(this, arguments);
+      // 下一幀再鉗制，確保壓過原本計算
+      requestAnimationFrame(run);
+      return r;
+    };
+  }
+
+  // Observe mutations (open/close/DOM 注入) 並節流
+  let raf = null;
+  const queue = () => { if (!raf) raf = requestAnimationFrame(()=>{ raf = null; run(); }); };
+  const mo = new MutationObserver(queue);
+  mo.observe(document.documentElement, { attributes:true, childList:true, subtree:true });
+
+  // 也在這些事件後重算
+  window.addEventListener('scroll', queue, {passive:true});
+  window.addEventListener('resize', queue);
+  window.addEventListener('orientationchange', queue);
+  window.addEventListener('load', queue);
+
+  // 初始執行
+  queue();
 })();
 </script>
 
