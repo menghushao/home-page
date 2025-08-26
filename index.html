@@ -3,7 +3,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>萌虎燒 | 雞蛋糕・甜點・下午茶 (v1.7.32)</title>
+  <title>萌虎燒 | 雞蛋糕・甜點・下午茶 (v1.7.49)</title>
   <meta name="description" content="萌虎燒是苗栗市的現點現做雞蛋糕專賣店，提供多種創意口味與飲品，支援外送與線上點餐。">
   <meta name="keywords" content="萌虎燒,雞蛋糕,苗栗雞蛋糕,甜點,下午茶,苗栗點心,萌虎燒菜單,萌虎燒訂購">
 
@@ -709,65 +709,191 @@
   function portionSizeForRow(row){ const v=parseFloat(row[30]||0); return (isFinite(v)&&v>0)? v:1; }
   function canJoinFullSet(row){ return ((row[31]||'')+'').trim()==='是'; }
 
-  function expandPortions(){
-    const portions=[]; // {price, canSet}
+  // === Debug Logger (console only) ===
+  function promoLog(...args){
+    try { console.log('[PROMO]', ...args); } catch(e){}
+  }
+
+
+  // === Promo (website simplified): read rules from grid row0..row2 (all columns) ===
+  let promoMap = new Map(); // tag -> {qty, price}
+  
+  function buildPromoMap(){
+    try{
+      promoMap.clear();
+      const row0 = grid[0] || [];
+      const row1 = grid[1] || [];
+      const row2 = grid[2] || [];
+      const maxLen = Math.max(row0.length, row1.length, row2.length);
+      for (let j=0; j<maxLen; j++){
+        const tag = ((row0[j] ?? '') + '').trim();
+        const qty = parseInt(row1[j], 10) || 0;
+        const price = parseFloat(row2[j]) || 0;
+        if (!tag) continue;
+        if (qty>0 && price>0) promoMap.set(tag, {qty, price});
+      }
+      const summary = Array.from(promoMap.entries()).map(([k,v])=> `${k} → ${v.qty}份/${v.price}元`).join('； ') || '(無)';
+      promoLog('已載入特價規則：', summary);
+    }catch(e){
+      console.warn('buildPromoMap error:', e);
+      promoMap.clear();
+    }
+  }
+
+
+  
+
+function applyPromos(portions){
+  if (!Array.isArray(portions) || portions.length===0) return portions;
+  const out = portions.map(p=> ({...p}));
+
+  // tag -> [{idx, price, units}]
+  const buckets = new Map();
+  out.forEach((p, idx)=>{
+    if (!p.promoTag) return;
+    const rule = promoMap.get(p.promoTag);
+    if (!rule) return;
+    const units = (typeof p.units==='number' && p.units>0) ? p.units : 1;
+    if (!buckets.has(p.promoTag)) buckets.set(p.promoTag, []);
+    buckets.get(p.promoTag).push({idx, price:p.price, units});
+  });
+
+  for (const [tag, arr] of buckets.entries()){
+    const rule = promoMap.get(tag); if (!rule) continue;
+    const {qty, price} = rule; if (!qty || !price) continue;
+
+    // total units available under this tag
+    const totalUnits = arr.reduce((s,x)=> s + x.units, 0);
+    const groupUnits = Math.floor(totalUnits / qty) * qty;
+    if (groupUnits <= 0) continue;
+
+    // greedy by (price per unit) high → low
+    arr.sort((a,b)=> (b.price/b.units) - (a.price/b.units));
+
+    let need = groupUnits;
+    const unitPrice = price / qty; // group price per unit
+
+    for (const item of arr){
+      if (need <= 0) break;
+      const take = Math.min(item.units, need);
+      const before = out[item.idx].price;
+      const newPrice = unitPrice * take;
+
+      if (take < item.units){
+        // split the portion: grouped part + leftover part
+        out[item.idx].price = newPrice;
+        out[item.idx].units = take;
+        const leftoverUnits = item.units - take;
+        const leftoverPrice = (item.price / item.units) * leftoverUnits;
+        out.push({ price: leftoverPrice, canSet: out[item.idx].canSet, promoTag: tag, units: leftoverUnits });
+        try{ promoLog(`[PROMO] tag=${tag} idx=${item.idx} before=${before} new=${newPrice} split=${take}+${leftoverUnits}`); }catch(e){}
+      } else {
+        out[item.idx].price = newPrice;
+        out[item.idx].units = item.units;
+        try{ promoLog(`[PROMO] tag=${tag} idx=${item.idx} before=${before} new=${newPrice}`); }catch(e){}
+      }
+      need -= take;
+    }
+  }
+  return out;
+}
+
+function expandPortions(){
+    const portions=[]; // {price, canSet, promoTag?}
     for (const it of cart){
       const {type,a,b,qty} = it;
       const aRow = rows.find(r=> r[1]===a);
       const bRow = rows.find(r=> r[1]===b);
-      if(type==='雞蛋糕'){
-        const aPrice = aRow? cashPriceForRow(aRow):0;
-        const bPrice = bRow? cashPriceForRow(bRow):0;
-        const canSet = (aRow?canJoinFullSet(aRow):true);
+
+      // helpers
+      const priceOf = (row)=> row? cashPriceForRow(row):0;
+      const perOf   = (row)=> row? portionSizeForRow(row):1;
+      const setOf   = (row)=> row? canJoinFullSet(row):true;
+      const tagOf   = (row)=> ((row?.[3]||'')+'').trim();
+
+      if (type==='雞蛋糕'){
+        const aPrice = priceOf(aRow);
+        const bPrice = priceOf(bRow);
+        const canSet = (aRow? setOf(aRow): true);
         let portionPrice=0;
+        let promoTag='';
+
+        const tagA = tagOf(aRow);
+        const tagB = tagOf(bRow);
+        if (a && b){
+          if (tagA && tagA===tagB) promoTag = tagA;
+        } else if (a && tagA){ promoTag = tagA; }
+          else if (b && tagB){ promoTag = tagB; }
+
         if (a && b) portionPrice = aPrice + bPrice;
         else if (a && !b) portionPrice = aPrice*2;
         else if (!a && b) portionPrice = bPrice*2;
-        for(let i=0;i<qty;i++){ portions.push({price:portionPrice, canSet}); }
-      }else{
+
+        // log (A+B)
+        try{
+          const nameA = aRow ? aRow[1] : (a||'');
+          const nameB = bRow ? bRow[1] : (b||'');
+          const rule = promoTag ? promoMap.get(promoTag) : null;
+          promoLog(`商品(A+B)=${nameA} + ${nameB}；數量=${qty}；A價=${aPrice}；B價=${bPrice}；份原價=${portionPrice}；D欄標籤 A=${tagA||''}/B=${tagB||''}；匹配標籤=${promoTag||'(無)'}；規則=${rule? (rule.qty + '份/組，組價' + rule.price + '元') : '無'}`);
+        }catch(e){}
+
+        for(let i=0;i<qty;i++){ portions.push({price:portionPrice, canSet, promoTag, units:2}); }
+      } else {
         const row = aRow || bRow;
         if (!row) continue;
-        const unit = cashPriceForRow(row);
-        const per = portionSizeForRow(row);
-        const canSet = canJoinFullSet(row);
+        const unit = priceOf(row);
+        const per  = perOf(row);
+        const canSet = setOf(row);
+        const promoTag = tagOf(row);
         const portionPrice = unit*per;
-        for(let i=0;i<qty;i++){ portions.push({price:portionPrice, canSet}); }
+
+        // log (single)
+        try{
+          const name = row ? row[1] : (a||b||'');
+          const rule = promoTag ? promoMap.get(promoTag) : null;
+          promoLog(`商品=${name}；數量=${qty}；單價=${unit}；份量=${per}；份原價=${portionPrice}；D欄標籤=${promoTag||''}；規則=${rule? (rule.qty + '份/組，組價' + rule.price + '元') : '無'}`);
+        }catch(e){}
+
+        for(let i=0;i<qty;i++){ portions.push({price:portionPrice, canSet, promoTag, units:per}); }
       }
     }
-    return portions;
+    return applyPromos(portions);
   }
 
   function calcTotals(){
-    
     const portions = expandPortions();
     let orderAmt = portions.reduce((s,p)=> s + p.price, 0);
 
-    // 可參與滿份折扣的份（排序由低到高，用於折扣與點數）
-    const eligible = portions.filter(p=> p.canSet).map(p=> p.price).sort((a,b)=> a-b);
+    // Eligible for full-set discount
+    const eligible = portions.filter(p=> p.canSet).map(p=> p.price).sort((a,b)=> b-a); // DESC
 
-    // 12份為一循環：每循環折掉 1 份（最便宜），並給 1 點
-    const cycles = Math.floor(eligible.length / CYCLE_SET);
-    const discountParts = eligible.slice(0, cycles);
-    const discountAmt = discountParts.reduce((s,p)=> s + p, 0);
+    const total = eligible.length;
+    const cycles = Math.floor(total / CYCLE_SET);
+
+    // Split into groups of CYCLE_SET, discount the MIN in each group
+    let discountAmt = 0;
+    for (let i=0; i<cycles; i++){
+      const start = i * CYCLE_SET;
+      const end = start + CYCLE_SET;
+      const group = eligible.slice(start, end); // length = CYCLE_SET
+      const minInGroup = group[group.length - 1]; // since DESC
+      discountAmt += (minInGroup || 0);
+    }
 
     const payAmt = orderAmt - discountAmt;
 
-    // 「剩餘份」＝ 未達下一循環的份數，只用這些份的金額來算點數（最高 9 點）
-    const leftoverCount = eligible.length - cycles*CYCLE_SET;
-    const leftoverPrices = (leftoverCount>0) ? eligible.slice(-leftoverCount) : [];
+    // Leftover (not forming a full group)
+    const leftoverPrices = eligible.slice(cycles * CYCLE_SET);
+    const leftoverCount = leftoverPrices.length;
     const leftoverAmt = leftoverPrices.reduce((s,p)=> s + p, 0);
 
-    // 循環點：每循環 +1 點
-    const cyclePoints = cycles * 1;
+    const cyclePoints = cycles * 1; // 1 pt per full cycle
 
-    // 剩餘點：leftoverAmt / 60 取整，未滿一循環最高 9 點；若剩餘份數達 6 份 → 乘 2 倍
     let leftoverPoints = Math.floor(leftoverAmt / MONEY_PER_POINT);
     if (leftoverCount >= 6) leftoverPoints = leftoverPoints * 2;
     leftoverPoints = Math.min(MAX_LEFTOVER_POINTS, leftoverPoints);
 
     const totalPoints = cyclePoints + leftoverPoints;
-
-
 
     return {orderAmt, cycles, discountAmt, payAmt, totalPoints};
   }
@@ -888,7 +1014,7 @@
   (async function init(){
     try{
       const res = await fetch(DATA_URL, {cache:'no-store'});
-      const raw = await res.json(); grid = normalize(raw); buildMaps(); fillType(); fillAB(''); placeDesktop(); setSubmitLabel(); renderCart();
+      const raw = await res.json(); grid = normalize(raw); buildMaps(); buildPromoMap(); fillType(); fillAB(''); placeDesktop(); setSubmitLabel(); renderCart();
     }catch(err){ console.error(err); alert('載入菜單資料失敗：' + (err.message||'')); }
   })();
 })();
