@@ -3,7 +3,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>萌虎燒 | 雞蛋糕・甜點・下午茶 (v1.7.55)</title>
+  <title>萌虎燒 | 雞蛋糕・甜點・下午茶 (v1.7.56)</title>
   <meta name="description" content="萌虎燒是苗栗市的現點現做雞蛋糕專賣店，提供多種創意口味與飲品，支援外送與線上點餐。">
   <meta name="keywords" content="萌虎燒,雞蛋糕,苗栗雞蛋糕,甜點,下午茶,苗栗點心,萌虎燒菜單,萌虎燒訂購">
 
@@ -389,7 +389,7 @@
 
 
 <style>
-/* v1.7.55 — 購物車清單改為內部卷軸，防止突破畫面；標題吸頂；動作區固定在底部 */
+/* v1.7.56 — 購物車清單改為內部卷軸，防止突破畫面；標題吸頂；動作區固定在底部 */
 .mh-cart{ 
   display: flex !important; 
   flex-direction: column !important; 
@@ -425,7 +425,7 @@
 
 
 <style>
-/* v1.7.55 — 手機非全螢幕：讓「訂單清單 + 下方表單」共用同一層卷軸 */
+/* v1.7.56 — 手機非全螢幕：讓「訂單清單 + 下方表單」共用同一層卷軸 */
 /* 1) 由 .mh-cart 作為唯一的滾動容器；標題吸頂；其餘皆在同一層內捲動 */
 .mh-cart{
   display:flex !important;
@@ -461,6 +461,37 @@
 /* 小螢幕高度稍放寬 */
 @media (max-width:1023.98px){
   .mh-cart{ max-height: var(--mh-cart-max, 85vh) !important; }
+}
+</style>
+
+
+<style>
+/* v1.7.56 — 外層單一卷軸 + 標題吸頂 */
+.mh-cart{
+  display:flex !important;
+  flex-direction:column !important;
+  max-height: var(--mh-cart-max, 85vh) !important;
+  overflow:auto !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+.mh-cart h4{
+  position: sticky !important;
+  top: 0;
+  background: var(--mh-cart-bg);
+  z-index: 2;
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+.mh-cart-list{
+  overflow: visible !important;
+  max-height: none !important;
+  min-height: 0 !important;
+  flex: 0 0 auto !important;
+}
+.mh-cart .mh-total,
+.mh-cart .mh-field,
+.mh-cart .mh-panel-actions{
+  flex: 0 0 auto !important;
 }
 </style>
 
@@ -515,7 +546,7 @@
         deliveryMsg.textContent = `需滿 ${amount} 元，請先聯繫店家評估`;
       });
     
-// v1.7.55 — Fix: Step3 cross-item combine by same price; summary text fixed.
+// v1.7.56 — Fix: Step3 cross-item combine by same price; summary text fixed.
 </script>
     <p>🚫 我們「不」提供塑膠袋和吸管，雞蛋糕單次消費滿5份，會提供一個不織布提網，滿12份再加贈萌虎不織布提袋，外送量大會使用二手但乾淨的紙箱。</p>
 <p>🎟️單次消費滿60元可獲得集點卡1點，餐點滿6份點數雙倍，滿12份直接折抵1份，點數改贈1點。集滿10點可兌換任何口味雞蛋糕1份。</p>
@@ -873,21 +904,21 @@
 
 function applyPromos(portions){
 
-  // New algorithm step 2 is handled in calcTotals (v1.7.55). Keep no-op for legacy calls.
+  // New algorithm step 2 is handled in calcTotals (v1.7.56). Keep no-op for legacy calls.
   return portions;
 
   }
 
 function expandPortions(){
 
-  // New algorithm builds portions directly in calcTotals (v1.7.55). Keep empty output here.
+  // New algorithm builds portions directly in calcTotals (v1.7.56). Keep empty output here.
   return [];
 
   }
 
   function calcTotals(){
 
-    // === New cart pricing algorithm (v1.7.55) ===
+    // === New cart pricing algorithm (v1.7.56) ===
     function itemRowByName(name){
       return rows.find(r => (r?.[1]||'').trim() === name);
     }
@@ -1679,7 +1710,7 @@ function expandPortions(){
 
 
 <script>
-// v1.7.55 — 根據視窗與#menu-root可用高度，動態計算購物車清單的max-height，避免堆高
+// v1.7.56 — 根據視窗與#menu-root可用高度，動態計算購物車清單的max-height，避免堆高
 (function(){
   function sizeCart(){
     try{
@@ -1755,7 +1786,7 @@ function expandPortions(){
 
 
 <script>
-// v1.7.55 — 只計算外層 .mh-cart 的可用高度為上限，統一由外層滾動
+// v1.7.56 — 只計算外層 .mh-cart 的可用高度為上限，統一由外層滾動
 (function(){
   function sizeCart(){
     try{
@@ -1788,6 +1819,62 @@ function expandPortions(){
     document.addEventListener('DOMContentLoaded', setup);
   } else {
     setup();
+  }
+})();
+</script>
+
+
+<script>
+// v1.7.56 — 外層高度自適應 + 有品項時離開確認
+(function(){
+  function sizeCart(){
+    try{
+      var root = document.getElementById('menu-root');
+      var cart = document.getElementById('mh-cart');
+      if (!cart) return;
+      var wrap   = document.getElementById('mh-floating');
+      var btnH   = wrap ? (wrap.getBoundingClientRect().height + 8) : 52;
+      var rootRect = root ? root.getBoundingClientRect() : null;
+      var avail = (rootRect ? rootRect.height : window.innerHeight) - btnH - 24;
+      var cap = Math.floor(Math.min(window.innerHeight * 0.9, avail));
+      cart.style.setProperty('--mh-cart-max', Math.max(220, cap) + 'px');
+    }catch(e){}
+  }
+  function setupSize(){
+    var cart = document.getElementById('mh-cart');
+    if (!cart) return;
+    new MutationObserver(sizeCart).observe(cart, { childList:true, subtree:true, attributes:true });
+    window.addEventListener('resize', sizeCart, { passive:true });
+    window.addEventListener('orientationchange', sizeCart);
+    sizeCart();
+  }
+
+  // 離開前確認
+  var needConfirm=false;
+  function updateNeed(){
+    var list = document.getElementById('mh-cart-list');
+    var count = list ? list.children.length : 0;
+    needConfirm = count > 0;
+  }
+  function setupUnload(){
+    var list = document.getElementById('mh-cart-list');
+    if (list){
+      new MutationObserver(updateNeed).observe(list, { childList:true });
+    }
+    updateNeed();
+    window.addEventListener('beforeunload', function(e){
+      if(!needConfirm) return;
+      e.preventDefault();
+      e.returnValue='';
+    });
+  }
+
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', function(){
+      setupSize(); setupUnload();
+    });
+  }else{
+    setupSize(); setupUnload();
   }
 })();
 </script>
