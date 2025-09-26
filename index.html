@@ -3,7 +3,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>萌虎燒 | 雞蛋糕・甜點・下午茶 (v1.7.49)</title>
+  <title>萌虎燒 | 雞蛋糕・甜點・下午茶 (v1.7.53)</title>
   <meta name="description" content="萌虎燒是苗栗市的現點現做雞蛋糕專賣店，提供多種創意口味與飲品，支援外送與線上點餐。">
   <meta name="keywords" content="萌虎燒,雞蛋糕,苗栗雞蛋糕,甜點,下午茶,苗栗點心,萌虎燒菜單,萌虎燒訂購">
 
@@ -437,7 +437,9 @@
         else amount = 300 + (fullKM - 3) * 150;
         deliveryMsg.textContent = `需滿 ${amount} 元，請先聯繫店家評估`;
       });
-    </script>
+    
+// v1.7.53 — Fix: Step3 cross-item combine by same price; summary text fixed.
+</script>
     <p>🚫 我們「不」提供塑膠袋和吸管，雞蛋糕單次消費滿5份，會提供一個不織布提網，滿12份再加贈萌虎不織布提袋，外送量大會使用二手但乾淨的紙箱。</p>
 <p>🎟️單次消費滿60元可獲得集點卡1點，餐點滿6份點數雙倍，滿12份直接折抵1份，點數改贈1點。集滿10點可兌換任何口味雞蛋糕1份。</p>
     <p>⚠️ 偶有麵糊沒完全熟透的情況，這無法完全避免，若發生了請告訴我們，我們將直接退回餐點費用。</p>
@@ -630,6 +632,7 @@
     </div>
     <div class="mh-actions-inline">
       <button id="mh-add-inline" class="mh-btn primary">加入購物車</button>
+      <button id="mh-bulk-combo" class="mh-btn">隨便啦~都來一點</button>
       <button id="mh-reset-inline" class="mh-btn">清空</button>
     </div>
   
@@ -792,158 +795,162 @@
   
 
 function applyPromos(portions){
-  if (!Array.isArray(portions) || portions.length===0) return portions;
-  const out = portions.map(p=> ({...p}));
 
-  // tag -> [{idx, price, units}]
-  const buckets = new Map();
-  out.forEach((p, idx)=>{
-    if (!p.promoTag) return;
-    const rule = promoMap.get(p.promoTag);
-    if (!rule) return;
-    const units = (typeof p.units==='number' && p.units>0) ? p.units : 1;
-    if (!buckets.has(p.promoTag)) buckets.set(p.promoTag, []);
-    buckets.get(p.promoTag).push({idx, price:p.price, units});
-  });
+  // New algorithm step 2 is handled in calcTotals (v1.7.53). Keep no-op for legacy calls.
+  return portions;
 
-  for (const [tag, arr] of buckets.entries()){
-    const rule = promoMap.get(tag); if (!rule) continue;
-    const {qty, price} = rule; if (!qty || !price) continue;
-
-    // total units available under this tag
-    const totalUnits = arr.reduce((s,x)=> s + x.units, 0);
-    const groupUnits = Math.floor(totalUnits / qty) * qty;
-    if (groupUnits <= 0) continue;
-
-    // greedy by (price per unit) high → low
-    arr.sort((a,b)=> (b.price/b.units) - (a.price/b.units));
-
-    let need = groupUnits;
-    const unitPrice = price / qty; // group price per unit
-
-    for (const item of arr){
-      if (need <= 0) break;
-      const take = Math.min(item.units, need);
-      const before = out[item.idx].price;
-      const newPrice = unitPrice * take;
-
-      if (take < item.units){
-        // split the portion: grouped part + leftover part
-        out[item.idx].price = newPrice;
-        out[item.idx].units = take;
-        const leftoverUnits = item.units - take;
-        const leftoverPrice = (item.price / item.units) * leftoverUnits;
-        out.push({ price: leftoverPrice, canSet: out[item.idx].canSet, promoTag: tag, units: leftoverUnits });
-        try{ promoLog(`[PROMO] tag=${tag} idx=${item.idx} before=${before} new=${newPrice} split=${take}+${leftoverUnits}`); }catch(e){}
-      } else {
-        out[item.idx].price = newPrice;
-        out[item.idx].units = item.units;
-        try{ promoLog(`[PROMO] tag=${tag} idx=${item.idx} before=${before} new=${newPrice}`); }catch(e){}
-      }
-      need -= take;
-    }
   }
-  return out;
-}
 
 function expandPortions(){
-    const portions=[]; // {price, canSet, promoTag?}
-    for (const it of cart){
-      const {type,a,b,qty} = it;
-      const aRow = rows.find(r=> r[1]===a);
-      const bRow = rows.find(r=> r[1]===b);
 
-      // helpers
-      const priceOf = (row)=> row? cashPriceForRow(row):0;
-      const perOf   = (row)=> row? portionSizeForRow(row):1;
-      const setOf   = (row)=> row? canJoinFullSet(row):true;
-      const tagOf   = (row)=> ((row?.[3]||'')+'').trim();
+  // New algorithm builds portions directly in calcTotals (v1.7.53). Keep empty output here.
+  return [];
 
-      if (type==='雞蛋糕'){
-        const aPrice = priceOf(aRow);
-        const bPrice = priceOf(bRow);
-        const canSet = (aRow? setOf(aRow): true);
-        let portionPrice=0;
-        let promoTag='';
-
-        const tagA = tagOf(aRow);
-        const tagB = tagOf(bRow);
-        if (a && b){
-          if (tagA && tagA===tagB) promoTag = tagA;
-        } else if (a && tagA){ promoTag = tagA; }
-          else if (b && tagB){ promoTag = tagB; }
-
-        if (a && b) portionPrice = aPrice + bPrice;
-        else if (a && !b) portionPrice = aPrice*2;
-        else if (!a && b) portionPrice = bPrice*2;
-
-        // log (A+B)
-        try{
-          const nameA = aRow ? aRow[1] : (a||'');
-          const nameB = bRow ? bRow[1] : (b||'');
-          const rule = promoTag ? promoMap.get(promoTag) : null;
-          promoLog(`商品(A+B)=${nameA} + ${nameB}；數量=${qty}；A價=${aPrice}；B價=${bPrice}；份原價=${portionPrice}；D欄標籤 A=${tagA||''}/B=${tagB||''}；匹配標籤=${promoTag||'(無)'}；規則=${rule? (rule.qty + '份/組，組價' + rule.price + '元') : '無'}`);
-        }catch(e){}
-
-        for(let i=0;i<qty;i++){ portions.push({price:portionPrice, canSet, promoTag, units:2}); }
-      } else {
-        const row = aRow || bRow;
-        if (!row) continue;
-        const unit = priceOf(row);
-        const per  = perOf(row);
-        const canSet = setOf(row);
-        const promoTag = tagOf(row);
-        const portionPrice = unit*per;
-
-        // log (single)
-        try{
-          const name = row ? row[1] : (a||b||'');
-          const rule = promoTag ? promoMap.get(promoTag) : null;
-          promoLog(`商品=${name}；數量=${qty}；單價=${unit}；份量=${per}；份原價=${portionPrice}；D欄標籤=${promoTag||''}；規則=${rule? (rule.qty + '份/組，組價' + rule.price + '元') : '無'}`);
-        }catch(e){}
-
-        for(let i=0;i<qty;i++){ portions.push({price:portionPrice, canSet, promoTag, units:per}); }
-      }
-    }
-    return applyPromos(portions);
   }
 
   function calcTotals(){
-    const portions = expandPortions();
-    let orderAmt = portions.reduce((s,p)=> s + p.price, 0);
 
-    // Eligible for full-set discount
-    const eligible = portions.filter(p=> p.canSet).map(p=> p.price).sort((a,b)=> b-a); // DESC
+    // === New cart pricing algorithm (v1.7.53) ===
+    function itemRowByName(name){
+      return rows.find(r => (r?.[1]||'').trim() === name);
+    }
+    function priceOfRow(row){ return cashPriceForRow(row); }
+    function normalUnitsOfRow(row){
+      const u = portionSizeForRow(row);
+      return (u && u>0) ? u : 1;
+    }
+    function tagOfRow(row){ return ((row?.[3]||'')+'').trim(); }
 
-    const total = eligible.length;
-    const cycles = Math.floor(total / CYCLE_SET);
-
-    // Split into groups of CYCLE_SET, discount the MIN in each group
-    let discountAmt = 0;
-    for (let i=0; i<cycles; i++){
-      const start = i * CYCLE_SET;
-      const end = start + CYCLE_SET;
-      const group = eligible.slice(start, end); // length = CYCLE_SET
-      const minInGroup = group[group.length - 1]; // since DESC
-      discountAmt += (minInGroup || 0);
+    // Step 1: build unit items
+    const unitItems = [];
+    for (const it of cart){
+      const {type,a,b,qty} = it;
+      if (type === '雞蛋糕'){
+        const aRow = a ? itemRowByName(a) : null;
+        const bRow = b ? itemRowByName(b) : null;
+        const aPrice = aRow ? priceOfRow(aRow) : 0;
+        const bPrice = bRow ? priceOfRow(bRow) : 0;
+        const aTag = aRow ? tagOfRow(aRow) : '';
+        const bTag = bRow ? tagOfRow(bRow) : '';
+        for (let i=0;i<qty;i++){
+          if (a && b){
+            unitItems.push({name:a, price:aPrice, tag:aTag});
+            unitItems.push({name:b, price:bPrice, tag:bTag});
+          } else if (a){
+            unitItems.push({name:a, price:aPrice, tag:aTag});
+            unitItems.push({name:a, price:aPrice, tag:aTag});
+          } else if (b){
+            unitItems.push({name:b, price:bPrice, tag:bTag});
+            unitItems.push({name:b, price:bPrice, tag:bTag});
+          }
+        }
+      } else {
+        const name = a || b || '';
+        if (!name) continue;
+        const row = itemRowByName(name);
+        const price = row ? priceOfRow(row) : 0;
+        const tag = row ? tagOfRow(row) : '';
+        for (let i=0;i<qty;i++){
+          unitItems.push({name, price, tag});
+        }
+      }
     }
 
+    // Step 2: specials by tag
+    const specialPortions = [];
+    const normalPool = [];
+
+    const tagRules = new Map(promoMap);
+    const tagBuckets = new Map();
+    for (const u of unitItems){
+      if (u.tag && tagRules.has(u.tag)){
+        if (!tagBuckets.has(u.tag)) tagBuckets.set(u.tag, []);
+        tagBuckets.get(u.tag).push(u);
+      } else {
+        normalPool.push(u);
+      }
+    }
+    for (const [tag, arr] of tagBuckets.entries()){
+      const rule = tagRules.get(tag);
+      if (!rule || !rule.qty || !rule.price){ normalPool.push(...arr); continue; }
+      arr.sort((a,b)=> b.price - a.price);
+      const groups = Math.floor(arr.length / rule.qty);
+      let idx = 0;
+      for (let g=0; g<groups; g++){
+        const groupSlice = arr.slice(idx, idx + rule.qty);
+        idx += rule.qty;
+        specialPortions.push({price: rule.price});
+        try{ promoLog(`[SPEC] tag=${tag} group=${g+1} => ${rule.qty}份, 價格=${rule.price}`); }catch(e){}
+      }
+      const leftovers = arr.slice(idx);
+      if (leftovers.length) normalPool.push(...leftovers);
+    }
+
+    // Step 3: normal area grouping
+    const normalPortions = [];
+    // Bucket by portion size to respect AE（1份的數量）
+    const byPortionSize = new Map(); // key: portionSize(int) -> array of units {price}
+    for (const u of normalPool){
+      const row = itemRowByName(u.name);
+      const portionSize = row ? normalUnitsOfRow(row) : 1;
+      if (!byPortionSize.has(portionSize)) byPortionSize.set(portionSize, []);
+      byPortionSize.get(portionSize).push({price: u.price});
+    }
+    for (const [portionSize, units] of byPortionSize.entries()){
+      if (portionSize <= 0){
+        units.forEach(u => normalPortions.push({price: u.price}));
+        continue;
+      }
+      // 3.1 先以相同價格為 1 份區分
+      const priceBuckets = new Map(); // unitPrice -> count
+      units.forEach(u => priceBuckets.set(u.price, (priceBuckets.get(u.price)||0) + 1));
+      const remainders = [];
+      for (const [unitPrice, cnt] of priceBuckets.entries()){
+        const full = Math.floor(cnt / portionSize);
+        const rem  = cnt % portionSize;
+        for (let i=0;i<full;i++){ normalPortions.push({price: unitPrice * portionSize}); }
+        for (let i=0;i<rem;i++){ remainders.push(unitPrice); }
+      }
+      // 3.2 將剩餘的以價格高→低排序後再分
+      remainders.sort((a,b)=> b-a);
+      while (remainders.length >= portionSize){
+        const grp = remainders.splice(0, portionSize);
+        const sum = grp.reduce((s,v)=> s+v, 0);
+        normalPortions.push({price: sum});
+      }
+      // 3.3 若仍不足份，將剩餘全部當作 1 份來算（價格=其加總）
+      if (remainders.length > 0){
+        const sum = remainders.reduce((s,v)=> s+v, 0);
+        normalPortions.push({price: sum});
+      }
+    }
+    // Step 4: merge and apply 12th free
+    const portions = [...specialPortions, ...normalPortions];
+    const pricesDesc = portions.map(p=>p.price).filter(v=>v>0).sort((a,b)=> b-a);
+    const totalPortions = pricesDesc.length;
+    const orderAmt = pricesDesc.reduce((s,v)=> s+v, 0);
+    const discountGroups = Math.floor(totalPortions / 12);
+    let discountAmt = 0;
+    for (let g=1; g<=discountGroups; g++){
+      const idx = g*12 - 1; // 12th, 24th, ...
+      discountAmt += pricesDesc[idx];
+    }
+    try{ promoLog(`[SET] 份數=${totalPortions}，折扣組數=${discountGroups}`); }catch(e){}
     const payAmt = orderAmt - discountAmt;
 
-    // Leftover (not forming a full group)
-    const leftoverPrices = eligible.slice(cycles * CYCLE_SET);
+    const cycles = Math.floor(totalPortions / CYCLE_SET);
+    const leftoverPrices = pricesDesc.slice(cycles * CYCLE_SET);
     const leftoverCount = leftoverPrices.length;
     const leftoverAmt = leftoverPrices.reduce((s,p)=> s + p, 0);
 
-    const cyclePoints = cycles * 1; // 1 pt per full cycle
-
+    const cyclePoints = cycles * 1;
     let leftoverPoints = Math.floor(leftoverAmt / MONEY_PER_POINT);
     if (leftoverCount >= 6) leftoverPoints = leftoverPoints * 2;
     leftoverPoints = Math.min(MAX_LEFTOVER_POINTS, leftoverPoints);
-
     const totalPoints = cyclePoints + leftoverPoints;
 
     return {orderAmt, cycles, discountAmt, payAmt, totalPoints};
+
   }
 
   function renderSummary(){
@@ -1062,7 +1069,7 @@ function expandPortions(){
   (async function init(){
     try{
       const res = await fetch(DATA_URL, {cache:'no-store'});
-      const raw = await res.json(); grid = normalize(raw); buildMaps(); buildPromoMap(); fillType(); fillAB(''); placeDesktop(); setSubmitLabel(); renderCart();
+      const raw = await res.json(); grid = normalize(raw); buildMaps(); try{ window.mh_typeToItems = new Map(typeToItems); }catch(e){} buildPromoMap(); fillType(); fillAB(''); placeDesktop(); setSubmitLabel(); renderCart();
     }catch(err){ console.error(err); alert('載入菜單資料失敗：' + (err.message||'')); }
   })();
 })();
@@ -1426,6 +1433,170 @@ function expandPortions(){
 </script>
 
 
+
+
+
+
+<!-- Bulk Combo Dialog --><div id="mh-bulk-dialog" style="display:none; position: fixed; inset: 0; z-index: 10060; align-items: center; justify-content: center;">
+  <div style="position:absolute; inset:0; background: rgba(0,0,0,.35);" data-close="1"></div>
+  <div style="position: relative; width: min(720px, 92vw); max-height: 82vh; overflow:auto; background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:14px; box-shadow:0 10px 30px rgba(0,0,0,.24);">
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px;">
+      <strong>批次建立雞蛋糕組合</strong>
+      <button id="mh-bulk-close" class="mh-btn">關閉</button>
+    </div>
+    <div class="mh-row-2">
+      <div class="mh-field">
+        <label>目標份數</label>
+        <input id="mh-bulk-total" type="number" class="mh-number" min="1" step="1" value="20">
+      </div>
+      <div class="mh-field">
+        <label>分配策略</label>
+        <select id="mh-bulk-strategy" class="mh-select">
+          <option value="even">平均分配</option>
+          <option value="random">隨機分配</option>
+        </select>
+      </div>
+    </div>
+    <div class="mh-field">
+      <label></label>
+      <div id="mh-bulk-list" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px,1fr)); gap:12px;"></div>
+    </div>
+    <div class="mh-actions-inline" style="margin-top:8px;">
+      <button id="mh-bulk-checkall" class="mh-btn">全選/全不選</button>
+      <button id="mh-bulk-ok" class="mh-btn primary">加入購物車</button>
+    </div>
+  </div>
+</div>
+
+
+
+<script>
+// bulk-combo v2.1 — 依分隔線分欄；把純「-----」當作分隔而非選項；中文介面
+(function(){
+  function ready(fn){ if (document.readyState!=='loading') fn(); else document.addEventListener('DOMContentLoaded', fn); }
+  ready(function(){
+    const openBtn = document.getElementById('mh-bulk-combo');
+    const dialog  = document.getElementById('mh-bulk-dialog');
+    if (!openBtn || !dialog) return;
+
+    const listBox = document.getElementById('mh-bulk-list');
+    const totalEl = document.getElementById('mh-bulk-total');
+    const strategyEl = document.getElementById('mh-bulk-strategy');
+    const okBtn   = document.getElementById('mh-bulk-ok');
+    const closeBtn= document.getElementById('mh-bulk-close');
+    const toggleAllBtn = document.getElementById('mh-bulk-checkall');
+
+    const typeSel = document.getElementById('mh-type');
+    const aSel = document.getElementById('mh-a');
+    const bSel = document.getElementById('mh-b');
+    const qtyInput = document.getElementById('mh-qty') || document.querySelector('input[name="qty"]');
+    const addInline = document.getElementById('mh-add-inline') || document.querySelector('#mh-add-inline');
+
+    const isDividerText = (t)=> {  if (!t) return false;  const s = String(t).trim();  if (!s) return false;  // divider if only separators: dashes, dots, middots, bullets, underscores, spaces
+  return /^[\s\-–—_\.\·•．。・]+$/.test(s);};
+    const isPlaceholder = (v)=> !v || v==='商品';
+
+    // 回傳分組，每格成員為 {text, value}
+    function getEggGroups(){
+      // DOM 主路徑：用 option 的 text 判斷分隔線。value 保留用來選取。
+      const prev = typeSel.value;
+      const evt = new Event('change', {bubbles:true});
+      typeSel.value = '雞蛋糕'; typeSel.dispatchEvent(evt);
+      const opts = Array.from(aSel.options);
+      // 還原
+      typeSel.value = prev; typeSel.dispatchEvent(evt);
+
+      const groups = []; let cur = [];
+      for (const o of opts){
+        const text = (o.textContent||o.label||o.value||'').trim();
+        const value = o.value;
+        if (isPlaceholder(value)) continue;
+        if (isDividerText(text)){
+          if (cur.length) { groups.push(cur); cur=[]; }
+          continue; // 不要把分隔線當選項
+        }
+        cur.push({text, value});
+      }
+      if (cur.length) groups.push(cur);
+      return groups;
+    }
+
+    function addToCartPair(aValue, bValue, qty){
+      if (!typeSel || !aSel || !bSel || !addInline) return;
+      const prevType = typeSel.value;
+      typeSel.value = '雞蛋糕';
+      typeSel.dispatchEvent(new Event('change', {bubbles:true}));
+
+      aSel.value = aValue || '';
+      bSel.value = bValue || '';
+      aSel.dispatchEvent(new Event('change', {bubbles:true}));
+      bSel.dispatchEvent(new Event('change', {bubbles:true}));
+
+      if (qtyInput){ qtyInput.value = String(qty||1); }
+      addInline.click();
+    }
+
+    function openDialog(){
+      const groups = getEggGroups(); // [ [{text,value}...] , ... ]
+      listBox.innerHTML = '';
+      groups.forEach((g)=>{
+        const col = document.createElement('div');
+        col.style.display='flex'; col.style.flexDirection='column'; col.style.gap='6px';
+        g.forEach(({text, value})=>{
+          const id = 'chk_' + btoa(unescape(encodeURIComponent(value))).replace(/=/g,'').slice(0,12);
+          const row = document.createElement('label');
+          row.style.display='flex'; row.style.alignItems='center'; row.style.gap='6px';
+          row.innerHTML = `<input type="checkbox" class="mh-bulk-chk" data-val="${value}" id="${id}" checked> <span>${text}</span>`;
+          col.appendChild(row);
+        });
+        listBox.appendChild(col);
+      });
+      dialog.style.display='flex';
+    }
+    function closeDialog(){ dialog.style.display='none'; }
+
+    function combinations(values){
+      const out=[]; for(let i=0;i<values.length;i++){ for(let j=i+1;j<values.length;j++){ out.push([values[i], values[j]]); } } return out;
+    }
+    function distributeEven(pairs, total){
+      const n = pairs.length; if (n===0) return [];
+      const base = Math.floor(total / n);
+      let rem = total % n;
+      const plan = pairs.map(p=> ({pair:p, qty: base}));
+      for (let i=0; i<rem; i++){ plan[i % n].qty += 1; }
+      return plan.filter(x=> x.qty>0);
+    }
+    function distributeRandom(pairs, total){
+      const plan = pairs.map(p=> ({pair:p, qty:0}));
+      for (let i=0;i<total;i++){ plan[Math.floor(Math.random()*pairs.length)].qty += 1; }
+      return plan.filter(x=> x.qty>0);
+    }
+
+    toggleAllBtn.addEventListener('click', ()=>{
+      const boxes = Array.from(listBox.querySelectorAll('.mh-bulk-chk'));
+      const allChecked = boxes.every(b=> b.checked);
+      boxes.forEach(b=> b.checked = !allChecked);
+    });
+
+    openBtn.addEventListener('click', openDialog);
+    closeBtn.addEventListener('click', closeDialog);
+    dialog.addEventListener('click', (e)=>{ if (e.target && e.target.getAttribute('data-close')) closeDialog(); });
+
+    okBtn.addEventListener('click', ()=>{
+      const total = Math.max(1, parseInt(totalEl.value||'1',10));
+      const selectedValues = Array.from(listBox.querySelectorAll('.mh-bulk-chk'))
+        .filter(b=> b.checked)
+        .map(b=> b.getAttribute('data-val'))
+        .filter(Boolean);
+      if (selectedValues.length < 2){ alert('請至少勾選兩個口味'); return; }
+      const pairs = combinations(selectedValues);
+      const plan = (strategyEl.value==='random') ? distributeRandom(pairs, total) : distributeEven(pairs, total);
+      plan.forEach(it=> addToCartPair(it.pair[0], it.pair[1], it.qty));
+      closeDialog();
+    });
+  });
+})();
+</script>
 
 
 
