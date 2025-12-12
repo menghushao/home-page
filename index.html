@@ -1878,5 +1878,60 @@ function expandPortions(){
   }
 })();
 </script>
+<script>
+  (function(){
+    // 設定要記憶的欄位 ID 列表
+    const fieldsToRemember = ['mh-addr', 'mh-sign', 'mh-name', 'mh-phone'];
+
+    // 函數：儲存欄位值到瀏覽器的 localStorage
+    function saveFields() {
+      fieldsToRemember.forEach(id => {
+        const input = document.getElementById(id);
+        if (input) {
+          try {
+            // 使用特定的 key (mh-cart-欄位ID) 來儲存值
+            localStorage.setItem(`mh-cart-${id}`, input.value);
+          } catch (e) {
+            // 處理無法存取的錯誤，例如瀏覽器隱私設定
+            console.warn(`無法儲存欄位 ${id} 到 localStorage:`, e);
+          }
+        }
+      });
+    }
+
+    // 函數：從瀏覽器的 localStorage 載入欄位值
+    function loadFields() {
+      fieldsToRemember.forEach(id => {
+        const input = document.getElementById(id);
+        if (input) {
+          try {
+            const savedValue = localStorage.getItem(`mh-cart-${id}`);
+            if (savedValue !== null) {
+              // 載入儲存的值
+              input.value = savedValue;
+            }
+          } catch (e) {
+            console.warn(`無法從 localStorage 載入欄位 ${id}:`, e);
+          }
+        }
+      });
+    }
+
+    // 1. 頁面載入後，立即載入先前儲存的資料
+    window.addEventListener('load', loadFields);
+
+    // 2. 監聽欄位輸入事件，每當欄位內容改變時就儲存
+    document.addEventListener('DOMContentLoaded', () => {
+      fieldsToRemember.forEach(id => {
+        const input = document.getElementById(id);
+        if (input) {
+          // 使用 input 事件確保每次輸入都即時儲存
+          input.addEventListener('input', saveFields);
+        }
+      });
+    });
+
+  })();
+</script>
 
 </body></html>
