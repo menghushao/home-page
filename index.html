@@ -1934,4 +1934,48 @@ function expandPortions(){
   })();
 </script>
 
+<script>
+  (function(){
+    // 取得相關元素
+    const panel = document.getElementById('mh-panel'); // 建立訂單小卡面板
+    const cart = document.getElementById('mh-cart');   // 購物車介面
+    const addInlineBtn = document.getElementById('mh-add-inline'); // 小卡內的加入購物車按鈕
+    const bulkOkBtn = document.getElementById('mh-bulk-ok');       // 批次組合的加入購物車按鈕
+
+    // 如果找不到任一元素，則不執行後續邏輯
+    if (!panel || !cart) return;
+
+    // 輔助函式：關閉主訂單小卡面板
+    function hidePanel(){
+      panel.classList.remove('open');
+      panel.setAttribute('aria-hidden', 'true');
+    }
+
+    // 輔助函式：開啟購物車介面 (假設是加上 'open' class 來顯示)
+    function showCart(){
+      cart.classList.add('open');
+      cart.setAttribute('aria-hidden', 'false');
+    }
+
+    // 主要動作函式：收合小卡並打開購物車
+    function handleCartAction(){
+      // 1. 收合「建立訂單小卡」
+      hidePanel();
+      
+      // 2. 打開購物車介面
+      showCart();
+    }
+
+    // 1. 監聽「建立訂單小卡」內的「加入購物車/更新項目」按鈕
+    if (addInlineBtn) {
+      addInlineBtn.addEventListener('click', handleCartAction);
+    }
+
+    // 2. 監聽「批次建立雞蛋糕組合」內的「加入購物車」按鈕
+    if (bulkOkBtn) {
+      bulkOkBtn.addEventListener('click', handleCartAction);
+    }
+  })();
+</script>
+
 </body></html>
