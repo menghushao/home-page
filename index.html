@@ -495,6 +495,96 @@
 }
 </style>
 
+<style>
+/* === v1.7.57 — Cart actions fixed at bottom; middle scroll only === */
+.mh-cart{
+  display: flex !important;
+  flex-direction: column !important;
+  max-height: 85vh !important;
+  overflow: hidden !important;
+}
+
+.mh-cart-list{
+  flex: 1 1 auto !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+.mh-cart .mh-panel-actions{
+  flex: 0 0 auto !important;
+  background: #fffdf9 !important;
+  border-top: 1px solid #e1d5c7 !important;
+}
+</style>
+<style>
+/* === v1.7.58 — Cart header + footer both fixed; middle scroll only === */
+.mh-cart{
+  display: flex !important;
+  flex-direction: column !important;
+  max-height: 85vh !important;
+  overflow: hidden !important;
+}
+
+/* Header stays fixed (top) */
+.mh-cart h4{
+  flex: 0 0 auto !important;
+  position: sticky !important;
+  top: 0 !important;
+  background: var(--mh-cart-bg) !important;
+  z-index: 3 !important;
+}
+
+/* Middle scroll area */
+.mh-cart-list{
+  flex: 1 1 auto !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+/* Footer actions fixed at bottom */
+.mh-cart .mh-panel-actions{
+  flex: 0 0 auto !important;
+  background: #fffdf9 !important;
+  border-top: 1px solid #e1d5c7 !important;
+  z-index: 3 !important;
+}
+</style>
+<style>
+/* === v1.7.59 — Correct scroll container: keep cart scrollable, freeze header & footer === */
+
+/* 1. Cart itself MUST scroll (restore scrollbar) */
+.mh-cart{
+  display: flex !important;
+  flex-direction: column !important;
+  max-height: 85vh !important;
+  overflow-y: auto !important;   /* 關鍵：恢復滾輪 */
+  overflow-x: hidden !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+/* 2. Header frozen at top */
+.mh-cart h4{
+  position: sticky !important;
+  top: 0 !important;
+  background: var(--mh-cart-bg) !important;
+  z-index: 5 !important;
+}
+
+/* 3. Footer frozen at bottom */
+.mh-cart .mh-panel-actions{
+  position: sticky !important;
+  bottom: 0 !important;
+  background: #fffdf9 !important;
+  border-top: 1px solid #e1d5c7 !important;
+  z-index: 5 !important;
+}
+
+/* 4. Middle content flows naturally inside the same scroll */
+.mh-cart-list{
+  overflow: visible !important;
+  flex: 0 0 auto !important;
+}
+</style>
 </head>
 <body>
 
