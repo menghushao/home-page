@@ -1251,19 +1251,42 @@ function expandPortions(){
   clearBtn.addEventListener('click', ()=>{ cart=[]; renderCart(); resetForm(); });
 
   // Copy / Send
+  // v1.7.60 — 修正：外送地址有填但招牌空白時，仍應帶出地址；並且「地址有值」時強制要求時間/稱呼/電話皆必填，否則不得複製/送出。
   function formatDate(dt){ try{ const d=new Date(dt); const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,'0'); const day=String(d.getDate()).padStart(2,'0'); const hh=String(d.getHours()).padStart(2,'0'); const mm=String(d.getMinutes()).padStart(2,'0'); return `${y}/${m}/${day} ${hh}:${mm}`; }catch(e){ return ''; } }
   function orderItemsText(){ return cart.map(it => `${it.title} × ${it.qty}`).join('；'); }
+
+  function validateBeforeCopySend(){
+    const addr = addrInput.value.trim();
+    if (!addr) return true; // 到店取餐：不強制
+    const when = whenInput.value.trim();
+    const name = nameInput.value.trim();
+    const phone = phoneInput.value.trim();
+    // 地址有值 → 時間/稱呼/電話 必填；招牌非必要
+    if (!when || !name || !phone){
+      alert('外送請將日期/時間、稱呼、電話資訊附上');
+      return false;
+    }
+    return true;
+  }
+
   function buildMessage(){
     const itemsText = orderItemsText() || '（尚未選擇商品）';
     const whenText = whenInput.value ? ` ${formatDate(whenInput.value)}` : '';
-    const addr = addrInput.value.trim(), sign=signInput.value.trim(), name=nameInput.value.trim(), phone=phoneInput.value.trim();
-    if (addr && sign){
-      return `老闆你好，我要 ${itemsText} ，請幫我外送到(${addr})(${sign})(${name})(${phone})` + (whenText? ` 請在${whenText} 送達`:'') + `，謝謝。`;
+    const addr = addrInput.value.trim();
+    const sign = signInput.value.trim();
+    const name = nameInput.value.trim();
+    const phone = phoneInput.value.trim();
+
+    if (addr){
+      // 外送：招牌可留空，但地址必須帶出；格式依照是否有招牌決定是否加上
+      const place = sign ? `(${addr})(${sign})` : `(${addr})`;
+      return `老闆你好，我要 ${itemsText} ，請幫我外送到${place}(${name})(${phone})` + (whenText? ` 請在${whenText} 送達`:'') + `，謝謝。`;
     } else {
       const who = [name, phone].filter(Boolean).join(' / ');
       return `老闆你好，我要 ${itemsText}` + (who? ` ，${who}`:'') + (whenText? ` ，預計${whenText} 取餐`:'') + `，謝謝。`;
     }
   }
+
   async function copyMessage(alertText){
     const msg = buildMessage();
     try{
@@ -1274,12 +1297,19 @@ function expandPortions(){
       alert(alertText || '已複製訂單。');
     }
   }
-  copyBtn.addEventListener('click', ()=> copyMessage('已複製訂單內容'));
+
+  copyBtn.addEventListener('click', ()=>{
+    if (!validateBeforeCopySend()) return;
+    copyMessage('已複製訂單內容');
+  });
+
   sendBtn.addEventListener('click', async ()=>{
+    if (!validateBeforeCopySend()) return;
     await copyMessage('已複製訂單內容，稍後將自動開啟通訊軟體，請親手貼上送出。');
     const [t,url]=channelSel.value.split('|');
     window.open(url,'_blank');
   });
+
 // Init
   (async function init(){
     try{
